@@ -1,0 +1,293 @@
+/* ── Root & Layout ────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f5f7fa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #1a1a2e;
+}
+
+.abs-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.abs-header {
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.abs-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.abs-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.abs-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.abs-tab {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.abs-tab:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.abs-tab--active {
+  background: #1677ff;
+  border-color: #1677ff;
+}
+
+/* ── Main simulation body ─────────────────────────────────────────────────── */
+.abs-body {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.abs-plane-col {
+  flex: 0 0 auto;
+  background: white;
+  border-right: 1px solid #e8e8e8;
+  padding: 16px 12px;
+  overflow-y: auto;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.abs-plane-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.abs-controls-col {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.abs-card {
+  border-radius: 8px !important;
+}
+
+.abs-chart-card .ant-card-body {
+  padding: 12px !important;
+}
+
+/* ── Params ───────────────────────────────────────────────────────────────── */
+.abs-param {
+  margin-bottom: 14px;
+}
+
+.abs-param label {
+  display: block;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.abs-param--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.abs-param--row label {
+  margin: 0;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.abs-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ── Done message ─────────────────────────────────────────────────────────── */
+.abs-done {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #389e0d;
+  margin-top: 8px;
+}
+
+/* ── Human dynamics breakdown ─────────────────────────────────────────────── */
+.abs-dynamics {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.abs-dyn-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #555;
+  padding: 3px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.abs-dyn-row:last-child { border-bottom: none; }
+
+/* ── Comparison tab ───────────────────────────────────────────────────────── */
+.abs-comparison {
+  padding: 16px 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.abs-comp-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.abs-comp-hint {
+  font-size: 12px;
+  color: #888;
+}
+
+.abs-comp-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.abs-result-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  border-top: 4px solid #ccc;
+  padding: 14px;
+  transition: box-shadow 0.2s;
+}
+
+.abs-result-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.abs-result-card--best {
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.abs-result-card--worst {
+  background: #fff2f0;
+  border-color: #ffccc7;
+}
+
+.abs-rc-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.abs-rc-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.abs-rc-time {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.abs-rc-secs {
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.abs-rc-desc {
+  font-size: 11px;
+  color: #777;
+  line-height: 1.4;
+}
+
+/* ── Analysis ─────────────────────────────────────────────────────────────── */
+.abs-analysis p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.abs-analysis p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────────── */
+.abs-plane-col::-webkit-scrollbar,
+.abs-controls-col::-webkit-scrollbar,
+.abs-comparison::-webkit-scrollbar {
+  width: 6px;
+}
+.abs-plane-col::-webkit-scrollbar-thumb,
+.abs-controls-col::-webkit-scrollbar-thumb,
+.abs-comparison::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .abs-body {
+    flex-direction: column;
+    overflow: visible;
+  }
+  .abs-plane-col {
+    border-right: none;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  .abs-controls-col {
+    max-width: 100%;
+    padding: 12px;
+  }
+}
