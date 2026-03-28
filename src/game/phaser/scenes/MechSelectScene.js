@@ -652,7 +652,7 @@ export default class MechSelectScene extends Phaser.Scene {
             const barFill = this.add.rectangle(barCX - barTotalW / 2, barY, barTotalW, 12, 0x00ff44)
               .setDepth(301)
               .setOrigin(0, 0.5)
-              .setScaleX(0.005);
+              .setScale(0.005, 1);
 
             this.tweens.add({
               targets: barFill,
