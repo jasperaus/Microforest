@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import AirplaneBoardingSimulator from './components/AirplaneBoardingSimulator';
+import AirplaneBoardingSimulator from './boarding/AirplaneBoardingSimulator';
 import IronCadetsGame from './game/index.jsx';
 import './App.css';
 

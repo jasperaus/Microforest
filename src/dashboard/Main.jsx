@@ -1,7 +1,7 @@
 import React from 'react';
-import CarbonChart from './CarbonChart';
-import BiodiversityChart from './BiodiversityChart';
-import CoolingMap from './CoolingMap';
+import CarbonChart from './charts/CarbonChart';
+import BiodiversityChart from './charts/BiodiversityChart';
+import CoolingMap from './charts/CoolingMap';
 
 export default function Main({ results }) {
   return (

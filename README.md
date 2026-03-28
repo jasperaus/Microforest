@@ -49,19 +49,39 @@ Hot-reload is active — edits to any `src/` file refresh the browser instantly.
 > **No API keys or environment variables required.**
 > All game textures are generated procedurally (no image files to download).
 
+### Run in the browser (no install)
+
+Open in **StackBlitz** — runs entirely in your browser, no local install needed:
+
+```
+https://stackblitz.com/github/jasperaus/Microforest/tree/claude/battletech-rpg-design-ZGpwx
+```
+
+Allow 3–5 minutes on first load for dependency install and compilation.
+
 ---
 
 ## Project structure
 
 ```
 src/
-├── App.jsx                  # Home screen launcher
+├── index.js                 # React entry point + Chart.js registration
+├── App.jsx                  # Home screen launcher (routes between apps)
 ├── App.css                  # Global styles
 │
-├── components/              # Airplane Boarding Simulator UI
-│   └── AirplaneBoardingSimulator.jsx
+├── boarding/                # ── Airplane Boarding Simulator ──────────────
+│   ├── AirplaneBoardingSimulator.jsx   # Main simulator component
+│   └── simulation/
+│       └── boardingEngine.js           # Pure JS simulation engine (no deps)
 │
-└── game/                    # Iron Cadets RPG
+├── dashboard/               # ── Legacy microforest dashboard (prototype) ─
+│   ├── Main.jsx / Sidebar.jsx
+│   └── charts/
+│       ├── BiodiversityChart.jsx
+│       ├── CarbonChart.jsx
+│       └── CoolingMap.jsx
+│
+└── game/                    # ── Iron Cadets RPG ──────────────────────────
     ├── index.jsx             # React wrapper + Phaser canvas mount
     ├── config.js             # Canvas size, tile constants, phase enum
     │
@@ -70,29 +90,29 @@ src/
     │   ├── ActionBar.jsx
     │   └── MechCard.jsx
     │
-    ├── data/                 # Static game data (JSON)
+    ├── data/                 # Static game data (JSON, no server needed)
     │   ├── mechs.json        # 5 player mechs + 2 enemy types
     │   ├── weapons.json      # 5 weapon types
     │   └── campaigns.json    # 5 missions with maps and spawn points
     │
     └── phaser/
-        ├── EventBridge.js    # Phaser → React event bus
+        ├── EventBridge.js    # Phaser → React event bus (singleton)
         │
         ├── entities/
         │   └── Mech.js       # Mech container: sprite, HP bar, animations
         │
         ├── scenes/
-        │   ├── BootScene.js        # Procedural texture generation
+        │   ├── BootScene.js        # Procedural texture generation (no assets)
         │   ├── MenuScene.js        # Animated title screen
-        │   ├── StoryScene.js       # 4-slide cinematic intro
-        │   ├── MechSelectScene.js  # Squad builder with loadout viewer
-        │   ├── BattleScene.js      # Main tactical combat
-        │   └── VictoryScene.js     # Win / defeat screen
+        │   ├── StoryScene.js       # 4-slide cinematic intro with typewriter
+        │   ├── MechSelectScene.js  # 3-panel squad builder + loadout viewer
+        │   ├── BattleScene.js      # Main tactical combat grid
+        │   └── VictoryScene.js     # Win / defeat screen with stats
         │
         └── systems/
             ├── TurnManager.js      # Phase state machine + player actions
-            ├── AIController.js     # Enemy AI (move + attack each turn)
-            ├── CombatResolver.js   # Hit rolls, damage, armor, heat
+            ├── AIController.js     # Enemy AI (move toward + attack nearest)
+            ├── CombatResolver.js   # Hit rolls, armor zones, heat
             └── PathFinder.js       # BFS movement range, A* AI pathing
 ```
 

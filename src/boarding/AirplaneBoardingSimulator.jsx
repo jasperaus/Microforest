@@ -11,7 +11,7 @@ import {
 import {
   createSimulation, stepSimMutable, runToCompletion,
   ROWS, SEAT_LABELS, SEAT_TYPES, STRATEGY_META, formatTime,
-} from '../simulation/boardingEngine';
+} from './simulation/boardingEngine';
 
 const { Option } = Select;
 
