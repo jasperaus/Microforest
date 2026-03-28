@@ -167,7 +167,9 @@ export default class TurnManager {
     if (!mech || mech.special === 'none') return;
 
     const ability = getAbility(mech.special);
-    const apRequired = ability ? ability.apCost : 2;
+    // called_shot costs its own AP *plus* 1 for the subsequent attack
+    const baseCost = ability ? ability.apCost : 2;
+    const apRequired = (ability && ability.effect === 'called_shot') ? baseCost + 1 : baseCost;
     if (mech.ap < apRequired) {
       EventBridge.emit('log', `${mech.name}: not enough AP for ${mech.specialName || 'special'}!`);
       return;
