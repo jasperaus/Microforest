@@ -36,6 +36,8 @@ export default class TurnManager {
       if (!m.alive) return;
       m.ap = m.maxAp;
       m.activatedThisTurn = false;
+      m.stealthed = false;   // stealth lasts exactly 1 enemy turn
+      m.calledShot = false;  // expire called shot if it was never used
       coolDown(m);
     });
 

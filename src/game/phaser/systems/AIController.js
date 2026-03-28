@@ -122,7 +122,7 @@ export default class AIController {
       });
 
       enemy.ap -= 1;
-      applyHeat(enemy, result.heatGain);
+      const justOverheated = applyHeat(enemy, result.heatGain);
 
       if (result.hit) {
         const prevFrontArmor = target.frontArmor;
@@ -144,7 +144,7 @@ export default class AIController {
           EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
         } else {
           if (result.damage >= 15) this.scene.cameras.main.shake(100, 0.006);
-          if (enemy.overheated) await enemy.playOverheatEffect();
+          if (justOverheated) await enemy.playOverheatEffect();
         }
       } else {
         await target.playMissEffect();
