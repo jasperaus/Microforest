@@ -36,6 +36,7 @@ export default function HUDOverlay({ gameRef }) {
           setTeam(data.team);
           setTurn(data.turn);
           if (data.mechs) setPlayerMechs(data.mechs);
+          if (data.enemyMechs) setEnemyMechs(data.enemyMechs);
           break;
         case 'mechSelected':
           setSelectedMech(data);

@@ -95,7 +95,7 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
         <ActionButton
           icon="⚡"
           label={selectedMech?.specialName?.split(' ')[0] || 'SPECIAL'}
-          disabled={!canAct || selectedMech?.ap < 2 || selectedMech?.special === 'none'}
+          disabled={!canSpecial}
           onClick={onSpecial}
           color="#221133"
           textColor="#aa44ff"

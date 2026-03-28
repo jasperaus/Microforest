@@ -114,6 +114,7 @@ export default class AIController {
           target.alive = false;
           await target.playDeathEffect();
           this.scene.grid[target.row][target.col].mech = null;
+          if (target.team === 'player') this.scene.stats.mechsLost++;
           EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
         }
       } else {

@@ -42,6 +42,7 @@ export default class TurnManager {
       team: 'player',
       turn: this.turnNumber,
       mechs: this.scene.playerMechs.filter(m => m.alive).map(m => m.getState()),
+      enemyMechs: this.scene.enemyMechs.filter(m => m.alive).map(m => m.getState()),
     });
   }
 

@@ -312,8 +312,12 @@ export default class BattleScene extends Phaser.Scene {
     const weapon = this.getWeapon(attacker, weaponIndex);
     if (!weapon && !options.damage) return { hit: false, damage: 0, heatGain: 0, logMessage: 'No weapon!' };
 
-    const effectiveDamage = options.damage || weapon.damage;
-    const effectiveWeapon = options.damage ? { ...weapon, damage: effectiveDamage } : weapon;
+    const effectiveDamage = options.damage !== undefined
+      ? options.damage
+      : weapon.damage + (options.damageBonus || 0);
+    const effectiveWeapon = (options.damage !== undefined || options.damageBonus)
+      ? { ...weapon, damage: effectiveDamage }
+      : weapon;
     const flanking = options.flanking !== undefined ? options.flanking : isFlanking(attacker, target);
 
     const result = resolveAttack(attacker, target, effectiveWeapon, { ...options, flanking });
