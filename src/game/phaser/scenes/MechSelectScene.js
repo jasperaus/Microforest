@@ -2,7 +2,11 @@ import Phaser from 'phaser';
 import mechsData from '../../data/mechs.json';
 import weaponsData from '../../data/weapons.json';
 import campaignsData from '../../data/campaigns.json';
+import abilitiesData from '../../data/abilities.json';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, UI } from '../../config.js';
+
+const _abilityMap = {};
+abilitiesData.forEach(a => { _abilityMap[a.id] = a; });
 
 // Class badge colors
 const CLASS_COLORS = {
@@ -575,7 +579,9 @@ export default class MechSelectScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'monospace', fontStyle: 'bold', color: '#ffcc44',
     }).setOrigin(0, 0));
 
-    this._rp(this.add.text(rx + 22, y + 20, '[2 AP]', {
+    const abilityData = _abilityMap[mech.special];
+    const apLabel = abilityData ? `[${abilityData.apCost} AP]` : '[2 AP]';
+    this._rp(this.add.text(rx + 22, y + 20, apLabel, {
       fontSize: '9px', fontFamily: 'monospace', color: '#886622',
     }).setOrigin(0, 0));
 

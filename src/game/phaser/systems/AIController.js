@@ -1,5 +1,5 @@
 import { getFacingFromMovement } from '../../config.js';
-import { getReachableTiles, findPath, manhattanDistance, hasLineOfSight } from './PathFinder.js';
+import { findPath, manhattanDistance, hasLineOfSight } from './PathFinder.js';
 import { resolveAttack, isFlanking, applyDamage, applyHeat, coolDown } from './CombatResolver.js';
 import EventBridge from '../EventBridge.js';
 
