@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import campaignsData from '../../data/campaigns.json';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
 
