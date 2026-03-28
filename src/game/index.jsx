@@ -5,6 +5,7 @@ import EventBridge from './phaser/EventBridge.js';
 // Scenes
 import BootScene from './phaser/scenes/BootScene.js';
 import MenuScene from './phaser/scenes/MenuScene.js';
+import StoryScene from './phaser/scenes/StoryScene.js';
 import MechSelectScene from './phaser/scenes/MechSelectScene.js';
 import BattleScene from './phaser/scenes/BattleScene.js';
 import VictoryScene from './phaser/scenes/VictoryScene.js';
@@ -47,7 +48,7 @@ export default function IronCadetsGame({ onBack }) {
           mode: Phaser.default.Scale.FIT,
           autoCenter: Phaser.default.Scale.CENTER_HORIZONTALLY,
         },
-        scene: [BootScene, MenuScene, MechSelectScene, BattleScene, VictoryScene],
+        scene: [BootScene, MenuScene, StoryScene, MechSelectScene, BattleScene, VictoryScene],
       });
 
       gameRef.current = game;

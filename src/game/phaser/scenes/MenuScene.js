@@ -105,7 +105,7 @@ export default class MenuScene extends Phaser.Scene {
     });
     btnBg.on('pointerdown', () => {
       this.cameras.main.fade(300, 0, 0, 0);
-      this.time.delayedCall(300, () => this.scene.start('MechSelectScene', { missionIndex: 0 }));
+      this.time.delayedCall(300, () => this.scene.start('StoryScene', { missionIndex: 0 }));
     });
 
     // Pulse button

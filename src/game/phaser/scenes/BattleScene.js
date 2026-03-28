@@ -140,16 +140,25 @@ export default class BattleScene extends Phaser.Scene {
       finalSpawns = spawns;
     }
 
-    finalSpawns.forEach(spawn => {
+    finalSpawns.forEach((spawn, i) => {
       const data = mechLookup[spawn.mechId];
       if (!data) return;
+      const targetY = this.tileY(spawn.row);
       const mech = new Mech(this,
         this.tileX(spawn.col),
-        this.tileY(spawn.row),
+        targetY - 60,
         { ...data, row: spawn.row, col: spawn.col }
       );
       this.grid[spawn.row][spawn.col].mech = mech;
       this.playerMechs.push(mech);
+      // Drop-in animation — staggered bounce from above
+      this.tweens.add({
+        targets: mech,
+        y: targetY,
+        duration: 400,
+        delay: i * 150,
+        ease: 'Bounce.easeOut',
+      });
     });
 
     // Enemy spawns
