@@ -1,0 +1,67 @@
+[
+  {
+    "id": "laser",
+    "name": "Laser",
+    "range": 4,
+    "damage": 8,
+    "heat": 2,
+    "hitChance": 1.0,
+    "splash": 0,
+    "ammo": -1,
+    "description": "Never misses. Reliable medium damage.",
+    "icon": "L",
+    "colorHex": "#FF4444"
+  },
+  {
+    "id": "autocannon",
+    "name": "Autocannon",
+    "range": 3,
+    "damage": 14,
+    "heat": 1,
+    "hitChance": 0.75,
+    "splash": 0,
+    "ammo": -1,
+    "description": "High damage with 75% hit chance. Generates less heat.",
+    "icon": "A",
+    "colorHex": "#FFAA00"
+  },
+  {
+    "id": "missiles",
+    "name": "Missiles",
+    "range": 6,
+    "damage": 10,
+    "heat": 3,
+    "hitChance": 0.85,
+    "splash": 0,
+    "ammo": -1,
+    "description": "Long range with good hit chance. Generates heat.",
+    "icon": "M",
+    "colorHex": "#FF6600"
+  },
+  {
+    "id": "machine_gun",
+    "name": "Machine Gun",
+    "range": 2,
+    "damage": 18,
+    "heat": 1,
+    "hitChance": 0.7,
+    "splash": 0,
+    "ammo": -1,
+    "description": "Short range burst. High damage up close.",
+    "icon": "G",
+    "colorHex": "#AAAAAA"
+  },
+  {
+    "id": "melee",
+    "name": "Melee",
+    "range": 1,
+    "damage": 22,
+    "heat": 0,
+    "hitChance": 0.9,
+    "splash": 0,
+    "ammo": -1,
+    "description": "Devastating close-quarters attack. No heat cost.",
+    "icon": "K",
+    "colorHex": "#FF8844"
+  }
+]
