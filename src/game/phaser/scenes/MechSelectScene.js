@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import mechsData from '../../data/mechs.json';
 import weaponsData from '../../data/weapons.json';
 import campaignsData from '../../data/campaigns.json';

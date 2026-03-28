@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
 
 const SLIDES = [

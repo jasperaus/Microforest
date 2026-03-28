@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Phaser from 'phaser';
 import HUDOverlay from './components/HUDOverlay.jsx';
 import EventBridge from './phaser/EventBridge.js';
 
@@ -25,18 +26,9 @@ export default function IronCadetsGame({ onBack }) {
   useEffect(() => {
     let game = null;
 
-    // Dynamic Phaser import to avoid SSR issues
-    const initPhaser = async () => {
-      let Phaser;
-      try {
-        Phaser = await import('phaser');
-      } catch (e) {
-        setLoadError('Failed to load game engine. Please refresh the page.');
-        return;
-      }
-
-      game = new Phaser.default.Game({
-        type: Phaser.default.AUTO,
+    try {
+      game = new Phaser.Game({
+        type: Phaser.AUTO,
         width: CANVAS_WIDTH,
         height: CANVAS_HEIGHT,
         backgroundColor: '#1a1a2e',
@@ -45,8 +37,8 @@ export default function IronCadetsGame({ onBack }) {
         roundPixels: true,
         parent: containerRef.current,
         scale: {
-          mode: Phaser.default.Scale.FIT,
-          autoCenter: Phaser.default.Scale.CENTER_HORIZONTALLY,
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
         },
         scene: [BootScene, MenuScene, StoryScene, MechSelectScene, BattleScene, VictoryScene],
       });
@@ -63,9 +55,9 @@ export default function IronCadetsGame({ onBack }) {
           setHudVisible(BATTLE_SCENES.has(sceneName));
         }
       });
-    };
-
-    initPhaser();
+    } catch (e) {
+      setLoadError('Failed to load game engine. Please refresh the page.');
+    }
 
     return () => {
       // Clean up Phaser instance to prevent memory leaks

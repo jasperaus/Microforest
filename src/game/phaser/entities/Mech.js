@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { MECH_COLORS } from '../../config.js';
 
 /**

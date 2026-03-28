@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { MECH_COLORS, TILE_COLORS, TILE_GRASS, TILE_WALL, TILE_WATER, TILE_OBJECTIVE } from '../../config.js';
 
 /**

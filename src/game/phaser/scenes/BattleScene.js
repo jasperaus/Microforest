@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import {
   TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y,
   TILE_GRASS, TILE_WALL, TILE_WATER, TILE_OBJECTIVE,
