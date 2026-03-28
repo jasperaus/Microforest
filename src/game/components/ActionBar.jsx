@@ -11,11 +11,11 @@ function ActionButton({ label, icon, disabled, onClick, color = '#224466', textC
         borderRadius: 5,
         color: disabled ? '#334455' : textColor,
         fontFamily: 'monospace',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 'bold',
-        padding: '6px 10px',
+        padding: '8px 14px',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        minWidth: 64,
+        minWidth: 80,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -26,7 +26,7 @@ function ActionButton({ label, icon, disabled, onClick, color = '#224466', textC
         WebkitUserSelect: 'none',
       }}
     >
-      <span style={{ fontSize: 14 }}>{icon}</span>
+      <span style={{ fontSize: 16 }}>{icon}</span>
       <span>{label}</span>
     </button>
   );
@@ -43,13 +43,13 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
   const canEndTurn = isPlayerTurn && !isAnimating;
 
   const phaseLabels = {
-    IDLE: 'Select a mech',
+    IDLE: 'Click a mech on the battlefield to select it',
     MECH_SELECTED: `${selectedMech?.name || ''} selected`,
     MOVING: 'Moving...',
     ATTACK_SELECT: 'Choose target',
     RESOLVING: 'Resolving...',
     SPECIAL_SELECT: 'Choose target',
-    ENEMY_TURN: 'Enemy turn...',
+    ENEMY_TURN: 'Enemy turn — stand by...',
     GAME_OVER: 'Game Over',
   };
 
@@ -58,18 +58,20 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
       display: 'flex',
       flexDirection: 'column',
       gap: 6,
-      padding: '8px 10px',
+      padding: '10px 16px',
       background: '#0a0a1a',
-      borderTop: '1px solid #1a1a3a',
+      borderTop: '2px solid #1a1a3a',
     }}>
       {/* Phase label */}
       <div style={{
-        fontFamily: 'monospace', fontSize: 10, color: '#556688',
+        fontFamily: 'monospace', fontSize: 12, color: '#556688',
         textAlign: 'center', letterSpacing: 1,
       }}>
         {phaseLabels[phase] || phase}
-        {phase === 'ATTACK_SELECT' && <span style={{ color: '#ff4444' }}> — click enemy to fire</span>}
-        {phase === 'MECH_SELECTED' && <span style={{ color: '#4488ff' }}> — click blue tile to move</span>}
+        {phase === 'IDLE' && <span style={{ color: '#334455' }}> (right side of battlefield)</span>}
+        {phase === 'MECH_SELECTED' && <span style={{ color: '#4488ff' }}> — click a blue tile to move, or press ATTACK</span>}
+        {phase === 'ATTACK_SELECT' && <span style={{ color: '#ff4444' }}> — click a red-highlighted enemy to fire</span>}
+        {phase === 'SPECIAL_SELECT' && <span style={{ color: '#aa44ff' }}> — click a highlighted target</span>}
       </div>
 
       {/* Action buttons */}

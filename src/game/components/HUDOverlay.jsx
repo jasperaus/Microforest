@@ -130,23 +130,23 @@ export default function HUDOverlay({ gameRef }) {
       {/* Top bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '4px 10px',
+        padding: '6px 16px',
         background: 'rgba(5, 5, 20, 0.88)',
-        borderBottom: '1px solid #1a1a3a',
+        borderBottom: '2px solid #1a1a3a',
         pointerEvents: 'none',
         flexShrink: 0,
       }}>
-        <div style={{ fontSize: 11, color: '#00eedd', fontWeight: 'bold' }}>IRON CADETS</div>
+        <div style={{ fontSize: 14, color: '#00eedd', fontWeight: 'bold', letterSpacing: 2 }}>IRON CADETS</div>
         <div style={{
-          fontSize: 11, fontWeight: 'bold', letterSpacing: 1,
+          fontSize: 13, fontWeight: 'bold', letterSpacing: 1,
           color: isEnemyTurn ? '#ff4444' : '#44aaff',
           background: isEnemyTurn ? '#330000' : '#001133',
-          padding: '2px 10px', borderRadius: 4,
+          padding: '4px 14px', borderRadius: 4,
           border: `1px solid ${isEnemyTurn ? '#660000' : '#003366'}`,
         }}>
           {isEnemyTurn ? '⚠ ENEMY TURN' : '● PLAYER TURN'} — Round {turn}
         </div>
-        <div style={{ fontSize: 9, color: '#445566' }}>
+        <div style={{ fontSize: 11, color: '#445566' }}>
           {playerMechs.filter(m => m.alive).length} vs {enemyMechs.filter(m => m.alive).length} alive
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function HUDOverlay({ gameRef }) {
       {/* Middle row: mech card + canvas + enemy info */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', pointerEvents: 'none' }}>
         {/* Left: Selected mech card */}
-        <div style={{ width: 178, flexShrink: 0, padding: 6, pointerEvents: 'auto' }}>
+        <div style={{ width: 220, flexShrink: 0, padding: 8, pointerEvents: 'auto' }}>
           <MechCard mech={selectedMech} />
 
           {/* Player mech roster */}
@@ -172,8 +172,8 @@ export default function HUDOverlay({ gameRef }) {
                   width: 6, height: 6, borderRadius: '50%',
                   background: m.alive ? (m.ap > 0 ? '#44aaff' : '#334466') : '#222222',
                 }} />
-                <span style={{ fontSize: 9, color: m.alive ? '#aaccee' : '#333344', flex: 1 }}>{m.name}</span>
-                <span style={{ fontSize: 9, color: '#556677' }}>{m.alive ? `${m.hp}hp` : 'KO'}</span>
+                <span style={{ fontSize: 10, color: m.alive ? '#aaccee' : '#333344', flex: 1 }}>{m.name}</span>
+                <span style={{ fontSize: 10, color: '#556677' }}>{m.alive ? `${m.hp}hp` : 'KO'}</span>
               </div>
             ))}
           </div>
@@ -184,7 +184,7 @@ export default function HUDOverlay({ gameRef }) {
 
         {/* Right: combat log */}
         <div style={{
-          width: 200, flexShrink: 0, padding: 6, pointerEvents: 'none',
+          width: 260, flexShrink: 0, padding: 8, pointerEvents: 'none',
         }}>
           <div style={{
             background: 'rgba(5, 5, 20, 0.82)',
@@ -194,11 +194,11 @@ export default function HUDOverlay({ gameRef }) {
             height: '100%',
             display: 'flex', flexDirection: 'column',
           }}>
-            <div style={{ fontSize: 9, color: '#334466', marginBottom: 4, letterSpacing: 1 }}>BATTLE LOG</div>
+            <div style={{ fontSize: 10, color: '#334466', marginBottom: 4, letterSpacing: 1 }}>BATTLE LOG</div>
             <div ref={logRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
               {log.map((msg, i) => (
                 <div key={i} style={{
-                  fontSize: 9, color: '#778899', lineHeight: 1.3,
+                  fontSize: 10, color: '#778899', lineHeight: 1.3,
                   borderBottom: '1px solid #111122', paddingBottom: 2,
                 }}>
                   {msg}
