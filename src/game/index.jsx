@@ -84,7 +84,7 @@ export default function IronCadetsGame({ onBack }) {
     <div style={{
       position: 'relative',
       width: '100%',
-      maxWidth: CANVAS_WIDTH,
+      maxWidth: '100vw',
       margin: '0 auto',
       background: '#1a1a2e',
     }}>

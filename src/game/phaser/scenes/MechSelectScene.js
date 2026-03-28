@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import mechsData from '../../data/mechs.json';
 import weaponsData from '../../data/weapons.json';
 import campaignsData from '../../data/campaigns.json';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, UI } from '../../config.js';
 
 // Class badge colors
 const CLASS_COLORS = {
@@ -22,13 +22,22 @@ const STAT_CONFIGS = [
   { key: 'rearArmor',  label: 'R.ARM', max: 60,  color: 0x667788 },
 ];
 
-// ── Layout constants ──────────────────────────────────────────────────────────
-// Header:  y=0..48
-// Content: y=48..444  (height=396)
-//   Left panel:   x=0..160   (width=160)
-//   Center panel: x=160..448 (width=288)
-//   Right panel:  x=448..736 (width=288)
-// Footer: y=444..496 (height=52)
+// ── Layout constants (1280×800) ──────────────────────────────────────────────
+// Header:  y=0..60
+// Content: y=60..732
+//   Left panel:   x=0..240   (width=240)
+//   Center panel: x=240..760 (width=520)
+//   Right panel:  x=760..1280 (width=520)
+// Footer: y=732..800 (height=68)
+
+const HEADER_H = 60;
+const FOOTER_Y = 732;
+const FOOTER_H = 68;
+const LEFT_W = 240;
+const CENTER_X = 240;
+const CENTER_W = 520;
+const RIGHT_X = 760;
+const RIGHT_W = 520;
 
 export default class MechSelectScene extends Phaser.Scene {
   constructor() {
@@ -37,8 +46,8 @@ export default class MechSelectScene extends Phaser.Scene {
 
   init(data) {
     this.missionIndex = data?.missionIndex ?? 0;
-    this.selected = [];      // array of selected mech IDs (for deployment)
-    this.previewIdx = 0;     // index into this.playerMechs
+    this.selected = [];
+    this.previewIdx = 0;
   }
 
   create() {
@@ -46,11 +55,9 @@ export default class MechSelectScene extends Phaser.Scene {
     this.maxSelect = Math.min(this.mission.playerSpawns.length, 3);
     this.playerMechs = mechsData.filter(m => m.team === 'player');
 
-    // Index weapons by id
     this._weaponsMap = {};
     weaponsData.forEach(w => { this._weaponsMap[w.id] = w; });
 
-    // Dynamic object arrays
     this._rightPanelObjects = [];
     this._squadDotObjects = [];
     this._deployPulseTween = null;
@@ -60,13 +67,22 @@ export default class MechSelectScene extends Phaser.Scene {
     bg.fillGradientStyle(0x060610, 0x060610, 0x0c0c22, 0x0c0c22, 1);
     bg.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+    // Subtle grid
+    const grid = this.add.graphics();
+    grid.lineStyle(1, 0x111122, 0.15);
+    for (let x = 0; x < CANVAS_WIDTH; x += 40) {
+      grid.strokeLineShape(new Phaser.Geom.Line(x, 0, x, CANVAS_HEIGHT));
+    }
+    for (let y = 0; y < CANVAS_HEIGHT; y += 40) {
+      grid.strokeLineShape(new Phaser.Geom.Line(0, y, CANVAS_WIDTH, y));
+    }
+
     this._drawPanelBorders();
     this._buildHeader();
     this._buildRoster();
     this._buildViewer();
     this._buildFooter();
 
-    // Start previewing the first unlocked mech
     const firstUnlocked = this.playerMechs.findIndex(m => m.unlocked !== false);
     this._setPreview(firstUnlocked >= 0 ? firstUnlocked : 0);
 
@@ -77,27 +93,40 @@ export default class MechSelectScene extends Phaser.Scene {
 
   _drawPanelBorders() {
     const g = this.add.graphics();
+
+    // Metal frame around entire canvas
+    g.lineStyle(3, UI.BORDER_OUTER);
+    g.strokeRect(4, 4, CANVAS_WIDTH - 8, CANVAS_HEIGHT - 8);
+    g.lineStyle(1, UI.BORDER_INNER);
+    g.strokeRect(8, 8, CANVAS_WIDTH - 16, CANVAS_HEIGHT - 16);
+
+    // Panel dividers
     g.lineStyle(1, 0x1a2540);
-    // Header bottom border
-    g.strokeLineShape(new Phaser.Geom.Line(0, 48, CANVAS_WIDTH, 48));
-    // Footer top border
-    g.strokeLineShape(new Phaser.Geom.Line(0, 444, CANVAS_WIDTH, 444));
-    // Left panel right border
-    g.strokeLineShape(new Phaser.Geom.Line(160, 48, 160, 444));
-    // Right panel left border
-    g.strokeLineShape(new Phaser.Geom.Line(448, 48, 448, 444));
+    g.strokeLineShape(new Phaser.Geom.Line(0, HEADER_H, CANVAS_WIDTH, HEADER_H));
+    g.strokeLineShape(new Phaser.Geom.Line(0, FOOTER_Y, CANVAS_WIDTH, FOOTER_Y));
+    g.strokeLineShape(new Phaser.Geom.Line(LEFT_W, HEADER_H, LEFT_W, FOOTER_Y));
+    g.strokeLineShape(new Phaser.Geom.Line(RIGHT_X, HEADER_H, RIGHT_X, FOOTER_Y));
+
+    // Corner rivets
+    const rivets = [[16, 16], [CANVAS_WIDTH - 16, 16], [16, CANVAS_HEIGHT - 16], [CANVAS_WIDTH - 16, CANVAS_HEIGHT - 16]];
+    rivets.forEach(([rx, ry]) => {
+      g.fillStyle(UI.BORDER_RIVET, 1);
+      g.fillCircle(rx, ry, 4);
+      g.fillStyle(0x666660, 0.4);
+      g.fillCircle(rx - 1, ry - 1, 2);
+    });
   }
 
   _buildHeader() {
-    this.add.text(CANVAS_WIDTH / 2, 15, `MISSION ${this.missionIndex + 1}: ${this.mission.name.toUpperCase()}`, {
-      fontSize: '13px',
+    this.add.text(CANVAS_WIDTH / 2, 20, `MISSION ${this.missionIndex + 1}: ${this.mission.name.toUpperCase()}`, {
+      fontSize: '16px',
       fontFamily: 'monospace',
       fontStyle: 'bold',
       color: '#00eedd',
     }).setOrigin(0.5);
 
-    this.add.text(CANVAS_WIDTH / 2, 34, this.mission.objective || '', {
-      fontSize: '9px',
+    this.add.text(CANVAS_WIDTH / 2, 42, this.mission.objective || '', {
+      fontSize: '11px',
       fontFamily: 'monospace',
       color: '#ffcc44',
     }).setOrigin(0.5);
@@ -107,68 +136,59 @@ export default class MechSelectScene extends Phaser.Scene {
 
   _buildRoster() {
     this.cards = [];
-    const cardW = 148, cardH = 68;
-    const cardCX = 80;   // center x of the 160px-wide left panel
-    const startY = 60;
-    const gap = 4;
+    const cardW = 220, cardH = 80;
+    const cardCX = LEFT_W / 2;  // 120
+    const startY = HEADER_H + 12;
+    const gap = 6;
+
+    // Panel label
+    this.add.text(cardCX, startY, 'ROSTER', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#2a3a4a', letterSpacing: 2,
+    }).setOrigin(0.5);
+
+    const cardsStartY = startY + 18;
 
     this.playerMechs.forEach((mech, i) => {
-      const cy = startY + i * (cardH + gap) + cardH / 2;
+      const cy = cardsStartY + i * (cardH + gap) + cardH / 2;
       const isUnlocked = mech.unlocked !== false;
 
-      // Card background
       const cardBg = this.add.rectangle(cardCX, cy, cardW, cardH, 0x080c18)
         .setInteractive({ useHandCursor: true })
         .setStrokeStyle(1, 0x182438);
 
-      // Small mech sprite (left side of card)
-      const sprite = this.add.image(cardCX - 46, cy, `mech_${mech.id}`)
-        .setDisplaySize(30, 30)
+      const sprite = this.add.image(cardCX - 68, cy, `mech_${mech.id}`)
+        .setDisplaySize(42, 42)
         .setAlpha(isUnlocked ? 1 : 0.25);
 
-      // Mech name
-      this.add.text(cardCX - 28, cy - 12, mech.name.toUpperCase(), {
-        fontSize: '10px',
-        fontFamily: 'monospace',
-        fontStyle: 'bold',
+      this.add.text(cardCX - 42, cy - 16, mech.name.toUpperCase(), {
+        fontSize: '12px', fontFamily: 'monospace', fontStyle: 'bold',
         color: isUnlocked ? '#ddeeff' : '#333344',
       }).setOrigin(0, 0.5);
 
-      // Class
-      this.add.text(cardCX - 28, cy + 2, mech.class, {
-        fontSize: '8px',
-        fontFamily: 'monospace',
+      this.add.text(cardCX - 42, cy + 2, mech.class, {
+        fontSize: '9px', fontFamily: 'monospace',
         color: isUnlocked ? '#7788aa' : '#2a2a3a',
       }).setOrigin(0, 0.5);
 
-      // Stats or LOCKED label
-      this.add.text(cardCX - 28, cy + 16, isUnlocked ? `HP:${mech.maxHp}  SPD:${mech.speed}` : 'LOCKED', {
-        fontSize: '8px',
-        fontFamily: 'monospace',
+      this.add.text(cardCX - 42, cy + 18, isUnlocked ? `HP:${mech.maxHp}  SPD:${mech.speed}` : 'LOCKED', {
+        fontSize: '9px', fontFamily: 'monospace',
         color: isUnlocked ? '#445566' : '#441111',
       }).setOrigin(0, 0.5);
 
-      // Lock icon (right side)
       if (!isUnlocked) {
-        this.add.text(cardCX + 58, cy, '🔒', { fontSize: '13px' }).setOrigin(0.5);
+        this.add.text(cardCX + 84, cy, '🔒', { fontSize: '16px' }).setOrigin(0.5);
       }
 
-      // Selection checkmark (hidden until selected)
-      const checkText = this.add.text(cardCX + 58, cy - 20, '', {
-        fontSize: '11px',
-        fontFamily: 'monospace',
-        fontStyle: 'bold',
-        color: '#44ff66',
+      const checkText = this.add.text(cardCX + 84, cy - 24, '', {
+        fontSize: '13px', fontFamily: 'monospace', fontStyle: 'bold', color: '#44ff66',
       }).setOrigin(0.5);
 
-      // Left cyan preview bar (indicates currently previewed mech)
-      const previewBar = this.add.rectangle(cardCX - cardW / 2, cy, 3, cardH, 0x00eedd, 0)
+      const previewBar = this.add.rectangle(cardCX - cardW / 2, cy, 4, cardH, 0x00eedd, 0)
         .setOrigin(0, 0.5);
 
       const card = { mech, bg: cardBg, sprite, previewBar, checkText, selected: false };
       this.cards.push(card);
 
-      // Hover effects
       cardBg.on('pointerover', () => {
         if (this.previewIdx !== i) cardBg.setStrokeStyle(1, 0x3355aa);
       });
@@ -180,21 +200,27 @@ export default class MechSelectScene extends Phaser.Scene {
         if (isUnlocked) this._toggleSelect(mech);
       });
     });
+
+    // Select count at bottom of roster
+    this._rosterCountText = this.add.text(cardCX, FOOTER_Y - 16, '', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#334455',
+    }).setOrigin(0.5);
   }
 
   // ── Center panel: mech viewer ─────────────────────────────────────────────
 
   _buildViewer() {
-    const cx = 304;  // center of 160+288/2
+    const cx = CENTER_X + CENTER_W / 2;  // 500
 
     // L-bracket corner decorations
-    const bLen = 20, bThick = 2;
+    const bLen = 24, bThick = 2;
     const bracketColor = 0x00eedd;
+    const bPad = 14;
     const corners = [
-      [172, 58,   1,  1],   // top-left
-      [436, 58,  -1,  1],   // top-right
-      [172, 420,  1, -1],   // bottom-left
-      [436, 420, -1, -1],   // bottom-right
+      [CENTER_X + bPad,             HEADER_H + bPad,    1,  1],
+      [CENTER_X + CENTER_W - bPad,  HEADER_H + bPad,   -1,  1],
+      [CENTER_X + bPad,             FOOTER_Y - bPad,    1, -1],
+      [CENTER_X + CENTER_W - bPad,  FOOTER_Y - bPad,   -1, -1],
     ];
     const brackets = corners.map(([bx, by, dx, dy]) => {
       const g = this.add.graphics();
@@ -204,70 +230,58 @@ export default class MechSelectScene extends Phaser.Scene {
       return g;
     });
 
-    // Bracket pulse
     this.tweens.add({
       targets: brackets,
-      alpha: { from: 0.65, to: 1 },
-      yoyo: true,
-      repeat: -1,
+      alpha: { from: 0.6, to: 1 },
+      yoyo: true, repeat: -1,
       duration: 1400,
     });
 
-    // Large mech sprite (float animation target)
-    this._viewerSprite = this.add.image(cx, 210, 'mech_zip').setDisplaySize(192, 192);
+    // Large mech sprite
+    const spriteY = (HEADER_H + FOOTER_Y) / 2 - 30;  // ~366
+    this._viewerSprite = this.add.image(cx, spriteY, 'mech_zip').setDisplaySize(256, 256);
 
     this.tweens.add({
       targets: this._viewerSprite,
-      y: { from: 210, to: 204 },
-      yoyo: true,
-      repeat: -1,
+      y: { from: spriteY, to: spriteY - 8 },
+      yoyo: true, repeat: -1,
       duration: 1800,
       ease: 'Sine.easeInOut',
     });
 
     // Scan sweep line
-    const scanLine = this.add.rectangle(cx, 68, 220, 3, 0x00eedd, 0.55);
+    const scanLine = this.add.rectangle(cx, HEADER_H + 20, 300, 3, 0x00eedd, 0.5);
     this.tweens.add({
       targets: scanLine,
-      y: { from: 68, to: 390 },
-      alpha: { from: 0.55, to: 0 },
-      duration: 2400,
+      y: { from: HEADER_H + 20, to: FOOTER_Y - 20 },
+      alpha: { from: 0.5, to: 0 },
+      duration: 2600,
       repeat: -1,
       delay: 600,
       ease: 'Linear',
     });
 
-    // Mech name
-    this._viewerName = this.add.text(cx, 318, '', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-      color: '#eeeeff',
+    // Name & class badge below sprite
+    const nameY = spriteY + 150;
+    this._viewerName = this.add.text(cx, nameY, '', {
+      fontSize: '18px', fontFamily: 'monospace', fontStyle: 'bold', color: '#eeeeff',
     }).setOrigin(0.5);
 
-    // Class badge (pill)
-    this._classBadgeBg = this.add.rectangle(cx, 338, 90, 18, 0x00ccdd);
-    this._classBadgeText = this.add.text(cx, 338, '', {
-      fontSize: '9px',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-      color: '#000000',
+    this._classBadgeBg = this.add.rectangle(cx, nameY + 24, 110, 22, 0x00ccdd);
+    this._classBadgeText = this.add.text(cx, nameY + 24, '', {
+      fontSize: '10px', fontFamily: 'monospace', fontStyle: 'bold', color: '#000000',
     }).setOrigin(0.5);
 
     // Navigation arrows
     const arrowCfg = {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#00eedd',
-      backgroundColor: '#080c18',
-      padding: { x: 8, y: 4 },
+      fontSize: '24px', fontFamily: 'monospace', color: '#00eedd',
+      backgroundColor: '#080c18', padding: { x: 10, y: 6 },
     };
-    const leftArrow = this.add.text(176, 390, '◄', arrowCfg)
-      .setOrigin(0, 0.5)
-      .setInteractive({ useHandCursor: true });
-    const rightArrow = this.add.text(432, 390, '►', arrowCfg)
-      .setOrigin(1, 0.5)
-      .setInteractive({ useHandCursor: true });
+    const arrowY = FOOTER_Y - 40;
+    const leftArrow = this.add.text(CENTER_X + 20, arrowY, '◄', arrowCfg)
+      .setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+    const rightArrow = this.add.text(CENTER_X + CENTER_W - 20, arrowY, '►', arrowCfg)
+      .setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
 
     leftArrow.on('pointerover',  () => leftArrow.setColor('#ffffff'));
     leftArrow.on('pointerout',   () => leftArrow.setColor('#00eedd'));
@@ -290,13 +304,12 @@ export default class MechSelectScene extends Phaser.Scene {
   // ── Footer ────────────────────────────────────────────────────────────────
 
   _buildFooter() {
+    const footerCY = FOOTER_Y + FOOTER_H / 2;  // 766
+
     // Back button
-    const backBtn = this.add.text(14, 470, '◄ BACK', {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#446677',
-      backgroundColor: '#080c18',
-      padding: { x: 6, y: 4 },
+    const backBtn = this.add.text(22, footerCY, '◄ BACK', {
+      fontSize: '13px', fontFamily: 'monospace', color: '#446677',
+      backgroundColor: '#080c18', padding: { x: 8, y: 5 },
     }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
     backBtn.on('pointerover', () => backBtn.setColor('#aaccdd'));
@@ -306,25 +319,21 @@ export default class MechSelectScene extends Phaser.Scene {
       this.time.delayedCall(300, () => this.scene.start('MenuScene'));
     });
 
-    // Mission name (center)
-    this.add.text(CANVAS_WIDTH / 2, 456, this.mission.name.toUpperCase(), {
-      fontSize: '8px',
-      fontFamily: 'monospace',
-      color: '#2a3a4a',
+    // Mission name
+    this.add.text(CANVAS_WIDTH / 2, FOOTER_Y + 10, this.mission.name.toUpperCase(), {
+      fontSize: '9px', fontFamily: 'monospace', color: '#2a3a4a',
     }).setOrigin(0.5);
 
-    // Squad dots (will be rebuilt on selection change)
+    // Squad dots
     this._buildSquadDots();
 
     // Deploy button
-    this._deployBtnBg = this.add.rectangle(CANVAS_WIDTH - 86, 470, 156, 38, 0x111111)
+    this._deployBtnBg = this.add.rectangle(CANVAS_WIDTH - 110, footerCY, 190, 44, 0x111111)
       .setInteractive({ useHandCursor: true })
       .setStrokeStyle(2, 0x222222);
 
-    this._deployBtnText = this.add.text(CANVAS_WIDTH - 86, 470, `PICK ${this.maxSelect} MECHS`, {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#333333',
+    this._deployBtnText = this.add.text(CANVAS_WIDTH - 110, footerCY, `PICK ${this.maxSelect} MECHS`, {
+      fontSize: '13px', fontFamily: 'monospace', color: '#333333',
     }).setOrigin(0.5);
 
     this._deployBtnBg.on('pointerdown', () => {
@@ -343,7 +352,8 @@ export default class MechSelectScene extends Phaser.Scene {
     this._squadDotObjects.forEach(d => d.destroy());
     this._squadDotObjects = [];
 
-    const dotR = 5, gap = 18;
+    const footerCY = FOOTER_Y + FOOTER_H / 2;
+    const dotR = 7, gap = 24;
     const totalW = this.maxSelect * gap - (gap - dotR * 2);
     const startX = CANVAS_WIDTH / 2 - totalW / 2 + dotR;
 
@@ -353,8 +363,8 @@ export default class MechSelectScene extends Phaser.Scene {
       const mechData = mechId ? this.playerMechs.find(m => m.id === mechId) : null;
       const color = mechData ? parseInt((mechData.colorHex || '#334455').replace('#', ''), 16) : 0x334455;
 
-      const dot = this.add.circle(startX + i * gap, 472, dotR, filled ? color : 0x050a10);
-      dot.setStrokeStyle(1.5, filled ? color : 0x334455);
+      const dot = this.add.circle(startX + i * gap, footerCY, dotR, filled ? color : 0x050a10);
+      dot.setStrokeStyle(2, filled ? color : 0x334455);
       this._squadDotObjects.push(dot);
     }
   }
@@ -365,18 +375,14 @@ export default class MechSelectScene extends Phaser.Scene {
     this.previewIdx = idx;
     const mech = this.playerMechs[idx];
 
-    // Update center viewer
-    this._viewerSprite.setTexture(`mech_${mech.id}`).setDisplaySize(192, 192);
+    this._viewerSprite.setTexture(`mech_${mech.id}`).setDisplaySize(256, 256);
     this._viewerName.setText(mech.name.toUpperCase());
 
     const classColor = CLASS_COLORS[mech.class] || 0x446688;
     this._classBadgeBg.setFillStyle(classColor);
     this._classBadgeText.setText(mech.class.toUpperCase());
 
-    // Rebuild right panel for this mech
     this._buildRightPanel(mech);
-
-    // Refresh roster card highlights
     this._refreshCards();
   }
 
@@ -391,6 +397,14 @@ export default class MechSelectScene extends Phaser.Scene {
     this._refreshCards();
     this._buildSquadDots();
     this._refreshDeployBtn();
+    this._updateRosterCount();
+  }
+
+  _updateRosterCount() {
+    if (this._rosterCountText) {
+      this._rosterCountText.setText(`SELECT ${this.selected.length}/${this.maxSelect}`);
+      this._rosterCountText.setColor(this.selected.length >= this.maxSelect ? '#44ff66' : '#334455');
+    }
   }
 
   _refreshCards() {
@@ -421,8 +435,7 @@ export default class MechSelectScene extends Phaser.Scene {
         targets: this._deployBtnBg,
         scaleX: { from: 1, to: 1.04 },
         scaleY: { from: 1, to: 1.04 },
-        yoyo: true,
-        repeat: -1,
+        yoyo: true, repeat: -1,
         duration: 650,
       });
     } else if (!ready && this._deployPulseTween) {
@@ -435,13 +448,12 @@ export default class MechSelectScene extends Phaser.Scene {
   // ── Right panel: loadout detail ───────────────────────────────────────────
 
   _buildRightPanel(mech) {
-    // Destroy previous dynamic objects
     this._rightPanelObjects.forEach(o => { if (o && o.active) o.destroy(); });
     this._rightPanelObjects = [];
 
-    const rx = 456;   // left edge x with padding
-    const rw = 268;   // usable width
-    let y = 58;
+    const rx = RIGHT_X + 16;
+    const rw = RIGHT_W - 32;
+    let y = HEADER_H + 10;
 
     if (mech.unlocked === false) {
       this._buildClassifiedOverlay(rx, rw);
@@ -451,101 +463,81 @@ export default class MechSelectScene extends Phaser.Scene {
     // Description
     if (mech.description) {
       const desc = this._rp(this.add.text(rx, y, mech.description, {
-        fontSize: '9px',
-        fontFamily: 'monospace',
-        color: '#7799aa',
-        wordWrap: { width: rw },
-        lineSpacing: 2,
+        fontSize: '11px', fontFamily: 'monospace', color: '#7799aa',
+        wordWrap: { width: rw }, lineSpacing: 3,
       }));
-      y += desc.height + 10;
+      y += desc.height + 14;
     }
 
     // Stats
-    this._rpDivider(rx, rw, y, '── STATS ──'); y += 17;
+    this._rpDivider(rx, rw, y, '── STATS ──'); y += 20;
     STAT_CONFIGS.forEach(cfg => {
       this._rpStatBar(rx, y, cfg.label, mech[cfg.key] ?? 0, cfg.max, cfg.color);
-      y += 23;
+      y += 28;
     });
-    y += 4;
+    y += 8;
 
     // Weapons
-    this._rpDivider(rx, rw, y, '── WEAPONS ──'); y += 17;
+    this._rpDivider(rx, rw, y, '── WEAPONS ──'); y += 20;
     (mech.weapons || []).forEach(wid => {
       const w = this._weaponsMap[wid];
       if (!w) return;
       this._rpWeapon(rx, rw, y, w);
-      y += 52;
+      y += 60;
     });
 
     // Special ability
     if (mech.special && mech.special !== 'none') {
-      this._rpDivider(rx, rw, y, '── SPECIAL ──'); y += 17;
+      this._rpDivider(rx, rw, y, '── SPECIAL ──'); y += 20;
       this._rpSpecial(rx, rw, y, mech);
     }
   }
 
-  // Helper: push a right-panel object into the tracked array and return it
   _rp(obj) {
     this._rightPanelObjects.push(obj);
     return obj;
   }
 
   _buildClassifiedOverlay(rx, rw) {
-    // Diagonal stripe background
     const g = this.add.graphics();
     g.fillStyle(0x330000, 0.15);
-    for (let d = -150; d < 350; d += 28) {
-      g.fillRect(448 + d, 48, 14, 396);
+    for (let d = -200; d < 600; d += 32) {
+      g.fillRect(RIGHT_X + d, HEADER_H, 16, FOOTER_Y - HEADER_H);
     }
     this._rightPanelObjects.push(g);
 
-    this._rp(this.add.text(rx + rw / 2, 246, 'CLASSIFIED', {
-      fontSize: '26px',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-      color: '#cc1111',
-      stroke: '#440000',
-      strokeThickness: 4,
+    this._rp(this.add.text(rx + rw / 2, (HEADER_H + FOOTER_Y) / 2, 'CLASSIFIED', {
+      fontSize: '32px', fontFamily: 'monospace', fontStyle: 'bold',
+      color: '#cc1111', stroke: '#440000', strokeThickness: 5,
     }).setOrigin(0.5).setAngle(-22).setAlpha(0.92));
 
-    this._rp(this.add.text(rx + rw / 2, 290, 'UNLOCK TO ACCESS', {
-      fontSize: '9px',
-      fontFamily: 'monospace',
-      color: '#661111',
+    this._rp(this.add.text(rx + rw / 2, (HEADER_H + FOOTER_Y) / 2 + 48, 'UNLOCK TO ACCESS', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#661111',
     }).setOrigin(0.5).setAngle(-22).setAlpha(0.7));
   }
 
   _rpDivider(rx, rw, y, label) {
     this._rp(this.add.text(rx + rw / 2, y, label, {
-      fontSize: '8px',
-      fontFamily: 'monospace',
-      color: '#2a3a4a',
+      fontSize: '9px', fontFamily: 'monospace', color: '#2a3a4a',
     }).setOrigin(0.5));
   }
 
   _rpStatBar(rx, y, label, val, maxVal, fillColor) {
-    const labelW = 52;
-    const barW = 118;
-    const barX = rx + labelW + 4;
+    const labelW = 58;
+    const barW = 180;
+    const barX = rx + labelW + 6;
 
-    this._rp(this.add.text(rx + labelW, y + 8, label, {
-      fontSize: '9px',
-      fontFamily: 'monospace',
-      color: '#4a6077',
+    this._rp(this.add.text(rx + labelW, y + 10, label, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#4a6077',
     }).setOrigin(1, 0.5));
 
-    // Bar track
-    this._rp(this.add.rectangle(barX, y + 8, barW, 10, 0x0a1020).setOrigin(0, 0.5));
+    this._rp(this.add.rectangle(barX, y + 10, barW, 12, 0x0a1020).setOrigin(0, 0.5));
 
-    // Bar fill
     const fillW = Math.max(2, Math.floor(barW * Math.min(val / maxVal, 1)));
-    this._rp(this.add.rectangle(barX, y + 8, fillW, 8, fillColor).setOrigin(0, 0.5));
+    this._rp(this.add.rectangle(barX, y + 10, fillW, 10, fillColor).setOrigin(0, 0.5));
 
-    // Numeric value
-    this._rp(this.add.text(barX + barW + 6, y + 8, `${val}`, {
-      fontSize: '9px',
-      fontFamily: 'monospace',
-      color: '#99aabb',
+    this._rp(this.add.text(barX + barW + 8, y + 10, `${val}`, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#99aabb',
     }).setOrigin(0, 0.5));
   }
 
@@ -553,58 +545,52 @@ export default class MechSelectScene extends Phaser.Scene {
     const iconColorStr = weapon.colorHex || '#888888';
     const iconColorNum = parseInt(iconColorStr.replace('#', ''), 16);
 
-    // Icon box
-    this._rp(this.add.rectangle(rx + 8, y + 9, 18, 18, 0x0a0f1a).setOrigin(0, 0.5)
+    this._rp(this.add.rectangle(rx + 10, y + 12, 22, 22, 0x0a0f1a).setOrigin(0, 0.5)
       .setStrokeStyle(1, iconColorNum));
-    this._rp(this.add.text(rx + 17, y + 9, weapon.icon || '?', {
-      fontSize: '9px', fontFamily: 'monospace', color: iconColorStr,
+    this._rp(this.add.text(rx + 21, y + 12, weapon.icon || '?', {
+      fontSize: '10px', fontFamily: 'monospace', color: iconColorStr,
     }).setOrigin(0.5));
 
-    // Name
-    this._rp(this.add.text(rx + 32, y + 2, weapon.name.toUpperCase(), {
-      fontSize: '10px', fontFamily: 'monospace', fontStyle: 'bold', color: '#ccdde8',
+    this._rp(this.add.text(rx + 40, y + 2, weapon.name.toUpperCase(), {
+      fontSize: '12px', fontFamily: 'monospace', fontStyle: 'bold', color: '#ccdde8',
     }).setOrigin(0, 0));
 
-    // Stats line: Range / Damage / Heat / Hit%
     const hitPct = Math.round(weapon.hitChance * 100);
-    this._rp(this.add.text(rx + 32, y + 16, `RNG:${weapon.range}  DMG:${weapon.damage}  HEAT:${weapon.heat}  ${hitPct}%hit`, {
-      fontSize: '8px', fontFamily: 'monospace', color: '#6688aa',
+    this._rp(this.add.text(rx + 40, y + 20, `RNG:${weapon.range}  DMG:${weapon.damage}  HEAT:${weapon.heat}  ${hitPct}%hit`, {
+      fontSize: '9px', fontFamily: 'monospace', color: '#6688aa',
     }).setOrigin(0, 0));
 
-    // Description
-    this._rp(this.add.text(rx + 32, y + 30, weapon.description || '', {
-      fontSize: '8px', fontFamily: 'monospace', color: '#3d5466',
-      wordWrap: { width: rw - 34 },
+    this._rp(this.add.text(rx + 40, y + 36, weapon.description || '', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#3d5466',
+      wordWrap: { width: rw - 44 },
     }).setOrigin(0, 0));
   }
 
   _rpSpecial(rx, rw, y, mech) {
-    this._rp(this.add.text(rx, y + 9, '★', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#ffcc00',
+    this._rp(this.add.text(rx, y + 12, '★', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#ffcc00',
     }).setOrigin(0, 0.5));
 
-    this._rp(this.add.text(rx + 18, y + 2, (mech.specialName || 'ABILITY').toUpperCase(), {
-      fontSize: '10px', fontFamily: 'monospace', fontStyle: 'bold', color: '#ffcc44',
+    this._rp(this.add.text(rx + 22, y + 2, (mech.specialName || 'ABILITY').toUpperCase(), {
+      fontSize: '12px', fontFamily: 'monospace', fontStyle: 'bold', color: '#ffcc44',
     }).setOrigin(0, 0));
 
-    this._rp(this.add.text(rx + 18, y + 16, '[2 AP]', {
-      fontSize: '8px', fontFamily: 'monospace', color: '#886622',
+    this._rp(this.add.text(rx + 22, y + 20, '[2 AP]', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#886622',
     }).setOrigin(0, 0));
 
-    this._rp(this.add.text(rx + 18, y + 30, mech.specialDesc || '', {
-      fontSize: '8px', fontFamily: 'monospace', color: '#997733',
-      wordWrap: { width: rw - 20 }, lineSpacing: 2,
+    this._rp(this.add.text(rx + 22, y + 36, mech.specialDesc || '', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#997733',
+      wordWrap: { width: rw - 24 }, lineSpacing: 3,
     }).setOrigin(0, 0));
   }
 
   // ── Deploy transition sequence ────────────────────────────────────────────
 
   _deploySequence() {
-    // Prevent double-trigger
     this._deployBtnBg.removeInteractive();
     this._deployPulseTween?.stop();
 
-    // White flash
     const flash = this.add.rectangle(
       CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2,
       CANVAS_WIDTH, CANVAS_HEIGHT,
@@ -617,7 +603,6 @@ export default class MechSelectScene extends Phaser.Scene {
       duration: 140,
       yoyo: true,
       onComplete: () => {
-        // Black overlay
         const overlay = this.add.rectangle(
           CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2,
           CANVAS_WIDTH, CANVAS_HEIGHT,
@@ -629,27 +614,21 @@ export default class MechSelectScene extends Phaser.Scene {
           alpha: 0.92,
           duration: 280,
           onComplete: () => {
-            // "DEPLOYING CADETS..." text
-            const deployText = this.add.text(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 36, 'DEPLOYING CADETS...', {
-              fontSize: '18px',
-              fontFamily: 'monospace',
-              fontStyle: 'bold',
-              color: '#00ff44',
+            const deployText = this.add.text(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40, 'DEPLOYING CADETS...', {
+              fontSize: '22px', fontFamily: 'monospace', fontStyle: 'bold', color: '#00ff44',
             }).setOrigin(0.5).setDepth(300).setAlpha(0);
 
             this.tweens.add({ targets: deployText, alpha: 1, duration: 180 });
 
-            // Loading bar track
             const barCX = CANVAS_WIDTH / 2;
-            const barY = CANVAS_HEIGHT / 2 + 18;
-            const barTotalW = 300;
+            const barY = CANVAS_HEIGHT / 2 + 22;
+            const barTotalW = 380;
 
-            this.add.rectangle(barCX, barY, barTotalW + 4, 16, 0x0a1a0a).setDepth(300).setOrigin(0.5);
-            this.add.rectangle(barCX, barY, barTotalW + 4, 16, 0x001100).setDepth(300).setOrigin(0.5)
+            this.add.rectangle(barCX, barY, barTotalW + 4, 18, 0x0a1a0a).setDepth(300).setOrigin(0.5);
+            this.add.rectangle(barCX, barY, barTotalW + 4, 18, 0x001100).setDepth(300).setOrigin(0.5)
               .setStrokeStyle(1, 0x225522);
 
-            // Fill bar — scaled from 0 to 1 along X axis (origin left)
-            const barFill = this.add.rectangle(barCX - barTotalW / 2, barY, barTotalW, 12, 0x00ff44)
+            const barFill = this.add.rectangle(barCX - barTotalW / 2, barY, barTotalW, 14, 0x00ff44)
               .setDepth(301)
               .setOrigin(0, 0.5)
               .setScale(0.005, 1);

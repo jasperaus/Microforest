@@ -1,9 +1,99 @@
 import Phaser from 'phaser';
-import { MECH_COLORS, TILE_COLORS, TILE_GRASS, TILE_WALL, TILE_WATER, TILE_OBJECTIVE } from '../../config.js';
+import { MECH_COLORS, MECH_TEX_SIZE, TILE_SIZE } from '../../config.js';
+
+// ── Isometric voxel helpers ──────────────────────────────────────────────────
+
+/** Darken a hex colour by a factor (0–1, lower = darker) */
+function shade(hex, factor) {
+  const r = ((hex >> 16) & 0xff) * factor;
+  const g = ((hex >> 8)  & 0xff) * factor;
+  const b = ( hex        & 0xff) * factor;
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+}
+
+/** Lighten a hex colour toward white */
+function tint(hex, factor) {
+  const r = ((hex >> 16) & 0xff);
+  const g = ((hex >> 8)  & 0xff);
+  const b = ( hex        & 0xff);
+  return ((Math.round(r + (255 - r) * factor)) << 16)
+       | ((Math.round(g + (255 - g) * factor)) << 8)
+       |  (Math.round(b + (255 - b) * factor));
+}
 
 /**
- * BootScene: generates all game textures procedurally (no external assets needed).
+ * Draw a shaded box (3 faces) to simulate isometric voxel.
+ * x, y = top-left of the front face. w, h = front face dims.
+ * d = depth offset for top/side faces.
  */
+function isoBox(g, x, y, w, h, d, color) {
+  const top   = tint(color, 0.35);
+  const front = color;
+  const side  = shade(color, 0.55);
+
+  // Front face
+  g.fillStyle(front);
+  g.fillRect(x, y, w, h);
+
+  // Top face (parallelogram)
+  g.fillStyle(top);
+  g.fillPoints([
+    { x: x,     y: y },
+    { x: x + d, y: y - d },
+    { x: x + w + d, y: y - d },
+    { x: x + w, y: y },
+  ], true);
+
+  // Right side face (parallelogram)
+  g.fillStyle(side);
+  g.fillPoints([
+    { x: x + w,     y: y },
+    { x: x + w + d, y: y - d },
+    { x: x + w + d, y: y + h - d },
+    { x: x + w,     y: y + h },
+  ], true);
+}
+
+/** Draw a panel line (thin dark rectangle) on the front face */
+function panelLine(g, x, y, w, color) {
+  g.fillStyle(shade(color, 0.3));
+  g.fillRect(x, y, w, 1);
+}
+
+/** Draw a rivet dot */
+function rivet(g, x, y, color) {
+  g.fillStyle(tint(color, 0.5));
+  g.fillCircle(x, y, 1.5);
+  g.fillStyle(shade(color, 0.35));
+  g.fillCircle(x + 0.5, y + 0.5, 1);
+}
+
+/** Draw a glowing accent rect */
+function glow(g, x, y, w, h, color) {
+  g.fillStyle(color, 0.2);
+  g.fillRect(x - 2, y - 2, w + 4, h + 4);
+  g.fillStyle(color, 0.5);
+  g.fillRect(x - 1, y - 1, w + 2, h + 2);
+  g.fillStyle(color, 1);
+  g.fillRect(x, y, w, h);
+  g.fillStyle(0xffffff, 0.4);
+  g.fillRect(x + 1, y + 1, Math.max(1, w - 2), Math.max(1, Math.floor(h / 3)));
+}
+
+/** Draw a glowing circle accent */
+function glowCircle(g, x, y, r, color) {
+  g.fillStyle(color, 0.15);
+  g.fillCircle(x, y, r + 4);
+  g.fillStyle(color, 0.35);
+  g.fillCircle(x, y, r + 2);
+  g.fillStyle(color, 1);
+  g.fillCircle(x, y, r);
+  g.fillStyle(0xffffff, 0.5);
+  g.fillCircle(x - 1, y - 1, Math.max(1, r - 2));
+}
+
+// ── BootScene ────────────────────────────────────────────────────────────────
+
 export default class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
@@ -16,67 +106,107 @@ export default class BootScene extends Phaser.Scene {
     this.scene.start('MenuScene');
   }
 
-  // ── Tile textures ─────────────────────────────────────────────────────────
+  // ── Tile textures (isometric stone blocks) ────────────────────────────────
 
   _generateTileTextures() {
-    // Grass tile
-    this._makeTile('tile_grass', (g) => {
-      g.fillStyle(0x3a6b2a); g.fillRect(0, 0, 60, 60);
-      g.fillStyle(0x4a8a36, 0.6);
-      g.fillRect(8, 12, 6, 6); g.fillRect(25, 8, 4, 4);
-      g.fillRect(40, 20, 5, 5); g.fillRect(15, 35, 4, 4);
-      g.fillRect(48, 42, 5, 3); g.fillRect(30, 48, 6, 4);
+    const S = TILE_SIZE;
+
+    // Grass — stone slab with moss accents
+    this._makeTile('tile_grass', S, (g) => {
+      const base = 0x4a5a3a;
+      isoBox(g, 0, 8, S, S - 8, 8, base);
+      // Grid lines on top
+      g.fillStyle(shade(base, 0.7), 0.4);
+      g.fillRect(0, 0, S, 1);
+      g.fillRect(0, 0, 1, S);
+      // Moss patches
+      g.fillStyle(0x5a7a3a, 0.5);
+      g.fillRect(12, 4, 8, 3);
+      g.fillRect(45, 2, 10, 2);
+      g.fillRect(22, 5, 6, 2);
+      g.fillRect(55, 6, 12, 2);
+      // Stone crack detail
+      g.fillStyle(shade(base, 0.55), 0.6);
+      g.fillRect(30, 3, 1, 4);
+      g.fillRect(60, 1, 1, 5);
     });
 
-    // Wall tile
-    this._makeTile('tile_wall', (g) => {
-      g.fillStyle(0x555566); g.fillRect(0, 0, 60, 60);
-      g.fillStyle(0x444455);
-      // Brick pattern
-      for (let row = 0; row < 4; row++) {
-        const offset = row % 2 === 0 ? 0 : 15;
-        for (let col = -1; col < 5; col++) {
-          g.strokeRect(col * 20 + offset, row * 15, 18, 13);
-        }
+    // Wall — dark metal block
+    this._makeTile('tile_wall', S, (g) => {
+      const base = 0x556068;
+      isoBox(g, 0, 8, S, S - 8, 8, base);
+      // Armour plate seams
+      panelLine(g, 2, 20, S - 4, base);
+      panelLine(g, 2, 40, S - 4, base);
+      panelLine(g, 2, 55, S - 4, base);
+      // Rivets
+      rivet(g, 6, 14, base); rivet(g, S - 8, 14, base);
+      rivet(g, 6, 34, base); rivet(g, S - 8, 34, base);
+      rivet(g, 6, 50, base); rivet(g, S - 8, 50, base);
+      // Hazard stripe on top face
+      g.fillStyle(0xddaa00, 0.3);
+      for (let i = 0; i < 6; i++) {
+        g.fillRect(i * 14, 2, 7, 5);
       }
-      g.lineStyle(1, 0x333344, 0.8);
     });
 
-    // Water tile
-    this._makeTile('tile_water', (g) => {
-      g.fillStyle(0x1a5a8a); g.fillRect(0, 0, 60, 60);
-      g.fillStyle(0x226699, 0.7);
-      g.fillRect(4, 10, 52, 3); g.fillRect(4, 24, 52, 3);
-      g.fillRect(4, 38, 52, 3); g.fillRect(4, 52, 52, 3);
-      g.fillStyle(0x44aadd, 0.3);
-      g.fillRect(10, 14, 20, 2); g.fillRect(34, 28, 18, 2);
-      g.fillRect(8, 42, 24, 2);
+    // Water — dark pool with shimmer
+    this._makeTile('tile_water', S, (g) => {
+      const base = 0x1a3a5a;
+      g.fillStyle(base);
+      g.fillRect(0, 0, S, S);
+      // Depth gradient
+      g.fillStyle(0x0a2040, 0.5);
+      g.fillRect(0, S / 2, S, S / 2);
+      // Shimmer lines
+      g.fillStyle(0x3388cc, 0.35);
+      g.fillRect(8, 14, 30, 2);
+      g.fillRect(20, 30, 40, 2);
+      g.fillRect(5, 46, 25, 2);
+      g.fillRect(40, 58, 30, 2);
+      g.fillStyle(0x55bbee, 0.2);
+      g.fillRect(15, 22, 18, 1);
+      g.fillRect(42, 40, 22, 1);
+      // Edge highlight
+      g.fillStyle(0x4488aa, 0.4);
+      g.fillRect(0, 0, S, 2);
+      g.fillRect(0, 0, 2, S);
     });
 
-    // Objective tile
-    this._makeTile('tile_objective', (g) => {
-      g.fillStyle(0x5a4010); g.fillRect(0, 0, 60, 60);
+    // Objective — gold-trimmed command tile
+    this._makeTile('tile_objective', S, (g) => {
+      const base = 0x5a5040;
+      isoBox(g, 0, 8, S, S - 8, 8, base);
+      // Gold border trim on top face
+      g.fillStyle(0xddaa22, 0.7);
+      g.fillRect(0, 0, S, 2);
+      g.fillRect(0, 6, S, 2);
+      g.fillRect(0, 0, 2, 8);
+      g.fillRect(S - 2, 0, 2, 8);
+      // Central marker
       g.fillStyle(0xffcc00, 0.8);
-      // Star shape approximation
-      const cx = 30, cy = 30, r1 = 14, r2 = 7;
-      const pts = [];
-      for (let i = 0; i < 10; i++) {
-        const angle = (i * Math.PI / 5) - Math.PI / 2;
-        const r = i % 2 === 0 ? r1 : r2;
-        pts.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
-      }
-      g.fillPoints(pts, true);
+      g.fillRect(S / 2 - 8, 20, 16, 16);
+      g.fillStyle(0xffee66, 0.6);
+      g.fillRect(S / 2 - 4, 24, 8, 8);
+      // Diamond icon
+      g.fillStyle(0xffffff, 0.5);
+      g.fillPoints([
+        { x: S / 2, y: 22 },
+        { x: S / 2 + 5, y: 28 },
+        { x: S / 2, y: 34 },
+        { x: S / 2 - 5, y: 28 },
+      ], true);
     });
   }
 
-  _makeTile(key, drawFn) {
+  _makeTile(key, size, drawFn) {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     drawFn(g);
-    g.generateTexture(key, 60, 60);
+    g.generateTexture(key, size, size);
     g.destroy();
   }
 
-  // ── Mech textures ─────────────────────────────────────────────────────────
+  // ── Mech textures (pseudo-isometric voxel) ────────────────────────────────
 
   _generateMechTextures() {
     this._makeZip();
@@ -88,246 +218,379 @@ export default class BootScene extends Phaser.Scene {
     this._makeDroneHeavy();
   }
 
-  _makeMechTexture(key, drawFn) {
+  _makeMech(key, drawFn) {
+    const S = MECH_TEX_SIZE;
     const g = this.make.graphics({ x: 0, y: 0, add: false });
-    drawFn(g);
-    g.generateTexture(key, 48, 48);
+    drawFn(g, S);
+    g.generateTexture(key, S, S);
     g.destroy();
   }
 
-  // Zip — slim cyan scout with antenna
+  // ── Zip: Scout — slim, fast, antenna, cyan ────────────────────────────────
   _makeZip() {
-    this._makeMechTexture('mech_zip', (g) => {
-      const c = 0x00eedd;
-      const dark = 0x009988;
-      // Legs
-      g.fillStyle(dark);
-      g.fillRect(13, 34, 7, 12); g.fillRect(28, 34, 7, 12);
-      // Body
-      g.fillStyle(c);
-      g.fillRect(14, 18, 20, 18);
-      // Shoulder pads (slim)
-      g.fillRect(10, 20, 6, 10); g.fillRect(32, 20, 6, 10);
+    this._makeMech('mech_zip', (g, S) => {
+      const c = 0x00ccbb;
+      const armor = 0x667788;
+      const joint = 0x334455;
+      const d = 5; // iso depth
+
+      // Legs (thin, fast-looking)
+      isoBox(g, 30, 68, 10, 18, d, joint);
+      isoBox(g, 52, 68, 10, 18, d, joint);
+      // Feet
+      isoBox(g, 27, 84, 14, 6, d, armor);
+      isoBox(g, 49, 84, 14, 6, d, armor);
+
+      // Torso (slim)
+      isoBox(g, 28, 40, 36, 30, d, c);
+      panelLine(g, 30, 50, 32, c);
+      panelLine(g, 30, 58, 32, c);
+
+      // Shoulder pads (small, aerodynamic)
+      isoBox(g, 18, 40, 12, 14, d, armor);
+      isoBox(g, 62, 40, 12, 14, d, armor);
+
       // Arms
-      g.fillStyle(dark);
-      g.fillRect(10, 26, 5, 8); g.fillRect(33, 26, 5, 8);
-      // Head
-      g.fillStyle(c);
-      g.fillRect(17, 10, 14, 10);
-      // Visor
-      g.fillStyle(0xffffff, 0.9);
-      g.fillRect(19, 12, 10, 5);
-      g.fillStyle(0x00ffcc);
-      g.fillRect(20, 13, 8, 3);
+      isoBox(g, 20, 52, 8, 16, 3, joint);
+      isoBox(g, 64, 52, 8, 16, 3, joint);
+
+      // Head (sleek)
+      isoBox(g, 34, 24, 24, 18, d, c);
+      // Visor (wide cyan)
+      glow(g, 37, 30, 18, 5, 0x00ffee);
+
       // Antenna
-      g.fillStyle(c);
-      g.fillRect(23, 4, 2, 8);
-      g.fillStyle(0xffffff);
-      g.fillCircle(24, 3, 2);
+      g.fillStyle(armor);
+      g.fillRect(45, 10, 2, 16);
+      glowCircle(g, 46, 9, 3, 0xffffff);
+
+      // Chest power indicator
+      glow(g, 42, 46, 8, 4, 0x00ffcc);
+
+      // Rivets
+      rivet(g, 22, 44, armor);
+      rivet(g, 70, 44, armor);
     });
   }
 
-  // Rex — wide orange brawler
+  // ── Rex: Brawler — wide, heavy, orange ────────────────────────────────────
   _makeRex() {
-    this._makeMechTexture('mech_rex', (g) => {
-      const c = 0xff8c00;
-      const dark = 0xcc6600;
-      // Thick legs
-      g.fillStyle(dark);
-      g.fillRect(11, 33, 10, 13); g.fillRect(27, 33, 10, 13);
-      // Big body
-      g.fillStyle(c);
-      g.fillRect(12, 16, 24, 19);
-      // Wide shoulder pads
-      g.fillStyle(0xff6600);
-      g.fillRect(6, 16, 8, 14); g.fillRect(34, 16, 8, 14);
-      // Armor plates on body
-      g.fillStyle(dark);
-      g.fillRect(16, 20, 16, 3);
-      g.fillRect(16, 26, 16, 3);
-      // Head — square
-      g.fillStyle(c);
-      g.fillRect(15, 8, 18, 10);
-      // Visor — narrow
-      g.fillStyle(0xff3300);
-      g.fillRect(17, 11, 14, 4);
-      // Fists
-      g.fillStyle(dark);
-      g.fillRect(5, 28, 7, 7); g.fillRect(36, 28, 7, 7);
+    this._makeMech('mech_rex', (g, S) => {
+      const c = 0xcc7700;
+      const armor = 0x778088;
+      const joint = 0x3a3a40;
+      const d = 6;
+
+      // Legs (thick)
+      isoBox(g, 26, 64, 16, 20, d, joint);
+      isoBox(g, 50, 64, 16, 20, d, joint);
+      // Armoured shin guards
+      isoBox(g, 24, 70, 8, 12, 3, armor);
+      isoBox(g, 60, 70, 8, 12, 3, armor);
+      // Feet (wide)
+      isoBox(g, 22, 82, 22, 8, d, armor);
+      isoBox(g, 48, 82, 22, 8, d, armor);
+
+      // Torso (massive)
+      isoBox(g, 22, 34, 48, 32, d, c);
+      panelLine(g, 26, 44, 42, c);
+      panelLine(g, 26, 52, 42, c);
+      panelLine(g, 26, 58, 42, c);
+      // Chest emblem (red insignia)
+      g.fillStyle(0xff2200, 0.8);
+      g.fillRect(40, 38, 12, 8);
+      g.fillStyle(0xff4422);
+      g.fillPoints([
+        { x: 46, y: 37 }, { x: 50, y: 42 }, { x: 46, y: 46 }, { x: 42, y: 42 },
+      ], true);
+
+      // Shoulder pads (huge, blocky)
+      isoBox(g, 8, 32, 18, 18, d, armor);
+      isoBox(g, 66, 32, 18, 18, d, armor);
+      rivet(g, 12, 36, armor); rivet(g, 22, 36, armor);
+      rivet(g, 70, 36, armor); rivet(g, 80, 36, armor);
+      rivet(g, 12, 46, armor); rivet(g, 22, 46, armor);
+      rivet(g, 70, 46, armor); rivet(g, 80, 46, armor);
+
+      // Fists (large)
+      isoBox(g, 10, 50, 12, 14, 4, joint);
+      isoBox(g, 70, 50, 12, 14, 4, joint);
+      glow(g, 12, 54, 8, 4, 0x44aaff);
+      glow(g, 72, 54, 8, 4, 0x44aaff);
+
+      // Head (squat, armoured)
+      isoBox(g, 30, 18, 32, 18, d, armor);
+      // Visor (narrow angry slit)
+      glow(g, 34, 26, 24, 4, 0xff6600);
+
+      // Missile pod on left shoulder
+      g.fillStyle(0x444444);
+      g.fillRect(10, 33, 4, 3); g.fillRect(10, 37, 4, 3); g.fillRect(10, 41, 4, 3);
+      g.fillStyle(0xff2200, 0.6);
+      g.fillCircle(12, 34, 1); g.fillCircle(12, 38, 1); g.fillCircle(12, 42, 1);
     });
   }
 
-  // Bolt — green sniper with long cannon arm
+  // ── Bolt: Sniper — tall, one big cannon arm, green ────────────────────────
   _makeBolt() {
-    this._makeMechTexture('mech_bolt', (g) => {
-      const c = 0x00dd44;
-      const dark = 0x009922;
-      // Slim legs (bipod stance)
-      g.fillStyle(dark);
-      g.fillRect(14, 34, 6, 12); g.fillRect(30, 34, 6, 12);
-      g.fillRect(10, 44, 10, 2); g.fillRect(28, 44, 10, 2); // feet
-      // Slim body
-      g.fillStyle(c);
-      g.fillRect(17, 18, 14, 18);
-      // One shoulder wider (cannon side)
-      g.fillStyle(dark);
-      g.fillRect(8, 18, 10, 8);
-      // Long barrel
-      g.fillStyle(0x224400);
-      g.fillRect(2, 22, 20, 4);
-      g.fillStyle(dark);
-      g.fillRect(0, 21, 5, 6); // muzzle
-      // Right arm
-      g.fillStyle(dark);
-      g.fillRect(31, 22, 8, 6);
-      // Tall head with scope
-      g.fillStyle(c);
-      g.fillRect(18, 8, 12, 11);
-      g.fillStyle(dark);
-      g.fillRect(28, 10, 10, 4); // scope
-      g.fillStyle(0x00ffaa);
-      g.fillRect(29, 11, 8, 2);  // scope lens
-      // Visor
-      g.fillStyle(0x00ff66);
-      g.fillRect(20, 11, 8, 4);
+    this._makeMech('mech_bolt', (g, S) => {
+      const c = 0x22aa44;
+      const armor = 0x556a5a;
+      const joint = 0x2a3a30;
+      const d = 5;
+
+      // Legs (thin, bipod stance)
+      isoBox(g, 32, 66, 10, 20, d, joint);
+      isoBox(g, 54, 66, 10, 20, d, joint);
+      // Stabiliser feet
+      isoBox(g, 28, 84, 16, 6, d, armor);
+      isoBox(g, 50, 84, 16, 6, d, armor);
+      g.fillStyle(0x00ddaa, 0.4);
+      g.fillRect(30, 87, 4, 2); g.fillRect(52, 87, 4, 2);
+
+      // Torso (slim, tall)
+      isoBox(g, 30, 36, 32, 32, d, c);
+      panelLine(g, 32, 46, 28, c);
+      panelLine(g, 32, 54, 28, c);
+
+      // LEFT: Big cannon arm
+      isoBox(g, 8, 36, 22, 12, d, armor);
+      // Barrel
+      g.fillStyle(0x2a3a30);
+      g.fillRect(2, 40, 24, 6);
+      g.fillStyle(0x1a2a20);
+      g.fillRect(0, 41, 6, 4);
+      // Muzzle glow
+      glow(g, 0, 42, 4, 2, 0x00ff66);
+
+      // RIGHT: Normal arm
+      isoBox(g, 62, 42, 12, 14, 4, joint);
+
+      // Shoulder pad (cannon side wider)
+      isoBox(g, 10, 30, 20, 8, d, armor);
+      rivet(g, 14, 33, armor); rivet(g, 26, 33, armor);
+
+      // Head (tall with scope)
+      isoBox(g, 34, 16, 24, 22, d, c);
+      // Scope extends right
+      isoBox(g, 56, 18, 16, 8, 3, armor);
+      glow(g, 60, 20, 10, 4, 0x00ffaa);
+      // Main visor
+      glow(g, 38, 24, 16, 6, 0x00ff66);
+
+      // Chest scanner
+      glow(g, 42, 40, 6, 4, 0x00ddaa);
     });
   }
 
-  // Nova — yellow support with cross symbol
+  // ── Nova: Support — round, medical cross, gold ────────────────────────────
   _makeNova() {
-    this._makeMechTexture('mech_nova', (g) => {
-      const c = 0xffd700;
-      const dark = 0xcc9900;
-      // Legs
-      g.fillStyle(dark);
-      g.fillRect(14, 34, 8, 12); g.fillRect(26, 34, 8, 12);
-      // Round body
-      g.fillStyle(c);
-      g.fillCircle(24, 26, 14);
-      g.fillRect(10, 20, 28, 14); // body base
+    this._makeMech('mech_nova', (g, S) => {
+      const c = 0xccaa00;
+      const armor = 0x8a8060;
+      const joint = 0x4a4a38;
+      const d = 5;
+
+      // Legs (medium)
+      isoBox(g, 30, 66, 12, 18, d, joint);
+      isoBox(g, 52, 66, 12, 18, d, joint);
+      // Rounded feet
+      isoBox(g, 28, 82, 16, 8, d, armor);
+      isoBox(g, 50, 82, 16, 8, d, armor);
+
+      // Torso (rounded / boxy)
+      isoBox(g, 24, 36, 44, 32, d, c);
       // Medical cross on chest
-      g.fillStyle(0xffffff, 0.9);
-      g.fillRect(21, 18, 6, 16);
-      g.fillRect(16, 22, 16, 6);
-      // Round arms
-      g.fillStyle(dark);
-      g.fillCircle(10, 26, 5); g.fillCircle(38, 26, 5);
-      // Round head
-      g.fillStyle(c);
-      g.fillCircle(24, 12, 9);
-      // Visor — wide friendly eyes
-      g.fillStyle(0xffffff);
-      g.fillCircle(20, 12, 3); g.fillCircle(28, 12, 3);
-      g.fillStyle(0x00aaff);
-      g.fillCircle(20, 12, 2); g.fillCircle(28, 12, 2);
+      g.fillStyle(0xffffff, 0.85);
+      g.fillRect(42, 40, 8, 22);
+      g.fillRect(36, 46, 20, 8);
+      // Cross outline
+      g.fillStyle(0xdd0000, 0.6);
+      g.fillRect(43, 41, 6, 20);
+      g.fillRect(37, 47, 18, 6);
+
+      // Shoulder pads (round)
+      isoBox(g, 14, 38, 12, 14, d, armor);
+      isoBox(g, 66, 38, 12, 14, d, armor);
+
+      // Arms (repair tools)
+      isoBox(g, 16, 50, 10, 14, 3, joint);
+      isoBox(g, 68, 50, 10, 14, 3, joint);
+      // Tool tips glow
+      glow(g, 18, 62, 6, 3, 0x44ffaa);
+      glow(g, 70, 62, 6, 3, 0x44ffaa);
+
+      // Head (round, friendly)
+      isoBox(g, 32, 18, 28, 20, d, c);
+      // Eyes (round, blue)
+      glowCircle(g, 40, 28, 4, 0x44aaff);
+      glowCircle(g, 54, 28, 4, 0x44aaff);
+
+      // Antenna (small)
+      g.fillStyle(armor);
+      g.fillRect(45, 10, 2, 10);
+      g.fillStyle(0x44ff88);
+      g.fillCircle(46, 9, 2);
     });
   }
 
-  // Vex — red assault with shoulder rockets
+  // ── Vex: Assault — massive, shoulder rockets, red ─────────────────────────
   _makeVex() {
-    this._makeMechTexture('mech_vex', (g) => {
-      const c = 0xff2244;
-      const dark = 0xcc0022;
-      // Wide legs
-      g.fillStyle(dark);
-      g.fillRect(10, 33, 12, 13); g.fillRect(26, 33, 12, 13);
-      // Massive body
-      g.fillStyle(c);
-      g.fillRect(10, 15, 28, 20);
-      // Shoulder rocket pods
-      g.fillStyle(0x880011);
-      g.fillRect(5, 14, 8, 14);  // left pod
-      g.fillRect(35, 14, 8, 14); // right pod
-      // Rocket tubes
-      g.fillStyle(0x444444);
-      g.fillRect(6, 15, 6, 3); g.fillRect(6, 20, 6, 3); g.fillRect(6, 25, 6, 3);
-      g.fillRect(36, 15, 6, 3); g.fillRect(36, 20, 6, 3); g.fillRect(36, 25, 6, 3);
-      // Arms - big barrel guns
-      g.fillStyle(dark);
-      g.fillRect(6, 28, 6, 6); g.fillRect(36, 28, 6, 6);
-      // Head — flat rectangular command dome
-      g.fillStyle(c);
-      g.fillRect(14, 7, 20, 10);
-      // Visor — angry red slit
-      g.fillStyle(0xff8800);
-      g.fillRect(16, 10, 16, 3);
-      // Armor ribs
-      g.fillStyle(dark, 0.7);
-      g.fillRect(14, 22, 20, 2);
-      g.fillRect(14, 27, 20, 2);
-    });
-  }
+    this._makeMech('mech_vex', (g, S) => {
+      const c = 0xcc1122;
+      const armor = 0x6a6070;
+      const joint = 0x3a2a30;
+      const d = 6;
 
-  // Drone Alpha — purple fast insectoid
-  _makeDroneAlpha() {
-    this._makeMechTexture('mech_drone_alpha', (g) => {
-      const c = 0x9922cc;
-      const dark = 0x661199;
-      // Insect legs (3 pairs)
-      g.fillStyle(dark);
-      g.fillRect(8, 28, 12, 3); g.fillRect(28, 28, 12, 3);   // upper legs
-      g.fillRect(6, 36, 12, 3); g.fillRect(30, 36, 12, 3);   // lower legs
-      g.fillRect(10, 42, 8, 3); g.fillRect(30, 42, 8, 3);    // feet
-      // Thorax (main body)
-      g.fillStyle(c);
-      g.fillEllipse(24, 28, 22, 16);
-      // Wings
-      g.fillStyle(c, 0.5);
-      g.fillEllipse(14, 20, 14, 8);  g.fillEllipse(34, 20, 14, 8);
-      // Head
-      g.fillStyle(c);
-      g.fillEllipse(24, 14, 14, 12);
-      // Glowing eye
-      g.fillStyle(0xff00ff);
-      g.fillCircle(24, 13, 4);
-      g.fillStyle(0xffffff);
-      g.fillCircle(23, 12, 2);
-      // Antennae
-      g.lineStyle(1, dark, 1);
-      g.strokeRect(16, 6, 1, 8); g.strokeRect(31, 6, 1, 8);
-    });
-  }
+      // Legs (very thick)
+      isoBox(g, 24, 62, 18, 22, d, joint);
+      isoBox(g, 52, 62, 18, 22, d, joint);
+      // Armoured knee guards
+      isoBox(g, 22, 66, 8, 10, 3, armor);
+      isoBox(g, 64, 66, 8, 10, 3, armor);
+      // Heavy feet
+      isoBox(g, 20, 82, 24, 8, d, armor);
+      isoBox(g, 50, 82, 24, 8, d, armor);
+      // Chevron markings on legs
+      g.fillStyle(0x44aaff, 0.5);
+      g.fillRect(28, 76, 10, 2); g.fillRect(30, 78, 8, 2);
+      g.fillRect(56, 76, 10, 2); g.fillRect(58, 78, 8, 2);
 
-  // Drone Heavy — dark red tank
-  _makeDroneHeavy() {
-    this._makeMechTexture('mech_drone_heavy', (g) => {
-      const c = 0xaa0000;
-      const dark = 0x660000;
-      // Tread base
+      // Torso (massive)
+      isoBox(g, 20, 32, 54, 32, d, c);
+      panelLine(g, 24, 42, 46, c);
+      panelLine(g, 24, 50, 46, c);
+      panelLine(g, 24, 56, 46, c);
+      rivet(g, 26, 38, c); rivet(g, 68, 38, c);
+      rivet(g, 26, 48, c); rivet(g, 68, 48, c);
+
+      // Shoulder ROCKET PODS
+      isoBox(g, 4, 24, 18, 22, d, armor);
+      isoBox(g, 72, 24, 18, 22, d, armor);
+      // Rocket tube openings
       g.fillStyle(0x333333);
-      g.fillRect(6, 36, 36, 10);
-      g.fillStyle(0x444444);
-      for (let i = 0; i < 5; i++) {
-        g.fillCircle(10 + i * 8, 41, 4);
+      g.fillRect(6, 26, 6, 4); g.fillRect(6, 32, 6, 4); g.fillRect(6, 38, 6, 4);
+      g.fillRect(74, 26, 6, 4); g.fillRect(74, 32, 6, 4); g.fillRect(74, 38, 6, 4);
+      g.fillStyle(0xff3300, 0.5);
+      g.fillCircle(9, 28, 1.5); g.fillCircle(9, 34, 1.5); g.fillCircle(9, 40, 1.5);
+      g.fillCircle(77, 28, 1.5); g.fillCircle(77, 34, 1.5); g.fillCircle(77, 40, 1.5);
+
+      // Arms (barrel guns)
+      isoBox(g, 6, 46, 12, 16, 4, joint);
+      isoBox(g, 76, 46, 12, 16, 4, joint);
+      glow(g, 8, 60, 8, 3, 0xff4400);
+      glow(g, 78, 60, 8, 3, 0xff4400);
+
+      // Head (command dome, flat)
+      isoBox(g, 28, 16, 38, 18, d, armor);
+      // Visor (angry orange slit)
+      glow(g, 34, 24, 26, 4, 0xff8800);
+
+      // Chest power core
+      glow(g, 44, 44, 6, 6, 0xff2200);
+    });
+  }
+
+  // ── Drone Alpha: fast insectoid, purple ───────────────────────────────────
+  _makeDroneAlpha() {
+    this._makeMech('mech_drone_alpha', (g, S) => {
+      const c = 0x8822aa;
+      const armor = 0x5a4a6a;
+      const joint = 0x3a2a4a;
+      const d = 4;
+
+      // Insect legs (3 pairs)
+      g.fillStyle(joint);
+      g.fillRect(14, 56, 16, 3); g.fillRect(62, 56, 16, 3);
+      g.fillRect(10, 66, 16, 3); g.fillRect(66, 66, 16, 3);
+      g.fillRect(16, 76, 12, 3); g.fillRect(64, 76, 12, 3);
+      // Claws
+      g.fillStyle(0xff00ff, 0.4);
+      g.fillCircle(12, 77, 2); g.fillCircle(80, 77, 2);
+
+      // Thorax
+      isoBox(g, 26, 48, 40, 24, d, c);
+      panelLine(g, 28, 58, 36, c);
+
+      // Wings
+      g.fillStyle(c, 0.35);
+      for (let i = 0; i < 3; i++) {
+        g.fillRect(14 - i * 2, 38 + i * 4, 20, 6);
+        g.fillRect(60 + i * 2, 38 + i * 4, 20, 6);
       }
+      g.fillStyle(0xcc44ff, 0.15);
+      g.fillRect(12, 36, 22, 18);
+      g.fillRect(58, 36, 22, 18);
+
+      // Head
+      isoBox(g, 30, 24, 32, 26, d, c);
+
+      // Single glowing eye
+      glowCircle(g, 46, 36, 6, 0xff00ff);
+
+      // Antennae
+      g.fillStyle(joint);
+      g.fillRect(34, 14, 2, 12);
+      g.fillRect(56, 14, 2, 12);
+      g.fillStyle(0xff44ff);
+      g.fillCircle(35, 13, 2);
+      g.fillCircle(57, 13, 2);
+    });
+  }
+
+  // ── Drone Heavy: tank with treads, dark red ───────────────────────────────
+  _makeDroneHeavy() {
+    this._makeMech('mech_drone_heavy', (g, S) => {
+      const c = 0x991111;
+      const armor = 0x6a5a5a;
+      const joint = 0x333333;
+      const d = 6;
+
+      // Tread base
+      isoBox(g, 10, 70, 72, 16, d, joint);
+      // Tread wheels
+      g.fillStyle(0x555555);
+      for (let i = 0; i < 7; i++) {
+        g.fillCircle(16 + i * 10, 78, 5);
+        g.fillStyle(0x444444);
+        g.fillCircle(16 + i * 10, 78, 3);
+        g.fillStyle(0x555555);
+      }
+
       // Heavy body
-      g.fillStyle(c);
-      g.fillRect(8, 16, 32, 22);
-      // Turret top
-      g.fillStyle(dark);
-      g.fillRect(14, 10, 20, 10);
-      // Twin cannons
-      g.fillStyle(0x222222);
-      g.fillRect(5, 18, 15, 5);  // left barrel
-      g.fillRect(5, 25, 15, 5);  // right barrel
-      g.fillStyle(0x111111);
-      g.fillRect(2, 19, 6, 3); g.fillRect(2, 26, 6, 3); // muzzles
-      // Armor rivets
-      g.fillStyle(dark);
-      g.fillRect(8, 16, 32, 3);
-      g.fillRect(8, 32, 32, 3);
+      isoBox(g, 14, 34, 64, 38, d, c);
+      panelLine(g, 18, 44, 56, c);
+      panelLine(g, 18, 56, 56, c);
+      panelLine(g, 18, 64, 56, c);
+      rivet(g, 20, 40, c); rivet(g, 72, 40, c);
+      rivet(g, 20, 52, c); rivet(g, 72, 52, c);
+
+      // Turret
+      isoBox(g, 24, 18, 44, 20, d, armor);
+      panelLine(g, 28, 28, 36, armor);
+
+      // Twin cannons (extending left)
+      isoBox(g, 4, 30, 24, 7, 4, joint);
+      isoBox(g, 4, 40, 24, 7, 4, joint);
+      // Muzzles
+      g.fillStyle(0x1a1a1a);
+      g.fillRect(0, 31, 8, 5);
+      g.fillRect(0, 41, 8, 5);
+      glow(g, 1, 32, 3, 3, 0xff4400);
+      glow(g, 1, 42, 3, 3, 0xff4400);
+
       // Red optics
-      g.fillStyle(0xff0000);
-      g.fillRect(18, 13, 12, 4);
-      g.fillStyle(0xff8888);
-      g.fillRect(20, 14, 8, 2);
+      glow(g, 32, 22, 28, 6, 0xff0000);
+
+      // Armour plate reinforcement
+      isoBox(g, 16, 34, 8, 16, 3, armor);
+      isoBox(g, 68, 34, 8, 16, 3, armor);
     });
   }
 
   // ── Particle textures ─────────────────────────────────────────────────────
 
   _generateParticleTextures() {
-    // Small white dot for particles
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(0xffffff);
     g.fillCircle(4, 4, 4);

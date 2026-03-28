@@ -404,22 +404,22 @@ export default class BattleScene extends Phaser.Scene {
     const missionNum = this.missionIndex + 1;
 
     const panel = this.add.rectangle(
-      this.scale.width / 2, this.scale.height / 2 - 20,
-      360, 90, 0x000000, 0.85
+      this.scale.width / 2, this.scale.height / 2 - 30,
+      480, 120, 0x000000, 0.88
     ).setDepth(90).setStrokeStyle(2, 0x00eedd, 0.9);
 
-    const t1 = this.add.text(this.scale.width / 2, this.scale.height / 2 - 48,
+    const t1 = this.add.text(this.scale.width / 2, this.scale.height / 2 - 68,
       `MISSION ${missionNum}: ${name.toUpperCase()}`, {
-      fontSize: '16px', fontFamily: 'monospace', fontStyle: 'bold', color: '#00eedd',
+      fontSize: '22px', fontFamily: 'monospace', fontStyle: 'bold', color: '#00eedd',
     }).setOrigin(0.5).setDepth(91);
 
-    const t2 = this.add.text(this.scale.width / 2, this.scale.height / 2 - 26, subtitle, {
-      fontSize: '11px', fontFamily: 'monospace', color: '#aaccff',
+    const t2 = this.add.text(this.scale.width / 2, this.scale.height / 2 - 38, subtitle, {
+      fontSize: '14px', fontFamily: 'monospace', color: '#aaccff',
     }).setOrigin(0.5).setDepth(91);
 
-    const t3 = this.add.text(this.scale.width / 2, this.scale.height / 2 - 6,
+    const t3 = this.add.text(this.scale.width / 2, this.scale.height / 2 - 12,
       `Objective: ${objective}`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#ffcc44',
+      fontSize: '12px', fontFamily: 'monospace', color: '#ffcc44',
     }).setOrigin(0.5).setDepth(91);
 
     const items = [panel, t1, t2, t3];

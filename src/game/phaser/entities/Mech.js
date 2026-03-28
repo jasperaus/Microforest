@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { MECH_COLORS } from '../../config.js';
+import { MECH_COLORS, MECH_SPRITE_SIZE } from '../../config.js';
 
 /**
  * Mech: a game entity sprite with state, animations, and combat data.
@@ -47,38 +47,40 @@ export default class Mech extends Phaser.GameObjects.Container {
   }
 
   _buildSprite(scene, data) {
-    const color = MECH_COLORS[data.id] || 0xffffff;
     const textureKey = `mech_${data.id}`;
+    const spriteSize = MECH_SPRITE_SIZE;
 
     // Main mech body sprite
-    this.bodySprite = scene.add.image(0, -4, textureKey);
-    this.bodySprite.setDisplaySize(44, 44);
+    this.bodySprite = scene.add.image(0, -6, textureKey);
+    this.bodySprite.setDisplaySize(spriteSize, spriteSize);
     this.add(this.bodySprite);
 
     // HP bar — fixed-width track with a fill that shrinks from right
-    this.hpBarBg = scene.add.rectangle(0, 24, 40, 6, 0x111111);
+    const barW = 52;
+    this.hpBarBg = scene.add.rectangle(0, 32, barW, 7, 0x111111);
     this.hpBarBg.setStrokeStyle(1, 0x000000);
     this.add(this.hpBarBg);
 
-    // Fill starts at left edge (-20) and scales width from left anchor
-    this.hpBar = scene.add.rectangle(-20, 24, 40, 6, 0x44ff44);
-    this.hpBar.setOrigin(0, 0.5); // left-anchored so shrinking goes rightward
+    // Fill starts at left edge and scales width from left anchor
+    this.hpBar = scene.add.rectangle(-barW / 2, 32, barW, 5, 0x44ff44);
+    this.hpBar.setOrigin(0, 0.5);
     this.add(this.hpBar);
+    this._hpBarWidth = barW;
 
     // Name tag
-    this.nameTag = scene.add.text(0, 30, data.name, {
-      fontSize: '8px',
+    this.nameTag = scene.add.text(0, 38, data.name, {
+      fontSize: '10px',
       fontFamily: 'monospace',
       color: '#ffffff',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 3,
     }).setOrigin(0.5, 0);
     this.add(this.nameTag);
 
     // Team indicator ring
     const ringColor = data.team === 'player' ? 0x4488ff : 0xff4444;
-    this.ring = scene.add.circle(0, -4, 24, ringColor, 0);
-    this.ring.setStrokeStyle(2, ringColor, 0.8);
+    this.ring = scene.add.circle(0, -6, 32, ringColor, 0);
+    this.ring.setStrokeStyle(2, ringColor, 0.7);
     this.add(this.ring);
 
     // Flip enemy mechs to face left
@@ -89,8 +91,7 @@ export default class Mech extends Phaser.GameObjects.Container {
 
   updateHpBar() {
     const pct = Math.max(0, this.hp / this.maxHp);
-    // Width shrinks from the right; origin is at left edge so x stays fixed at -20
-    this.hpBar.width = Math.max(1, Math.floor(40 * pct));
+    this.hpBar.width = Math.max(1, Math.floor(this._hpBarWidth * pct));
     const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffcc00 : 0xff3333;
     this.hpBar.setFillStyle(color);
   }
@@ -98,9 +99,10 @@ export default class Mech extends Phaser.GameObjects.Container {
   setSelected(selected) {
     this.ring.setStrokeStyle(selected ? 3 : 2,
       selected ? 0xffff00 : (this.team === 'player' ? 0x4488ff : 0xff4444),
-      selected ? 1 : 0.8
+      selected ? 1 : 0.7
     );
-    this.ring.setDisplaySize(selected ? 52 : 48, selected ? 52 : 48);
+    const sz = selected ? 70 : 64;
+    this.ring.setDisplaySize(sz, sz);
   }
 
   setDimmed(dimmed) {
@@ -122,12 +124,11 @@ export default class Mech extends Phaser.GameObjects.Container {
     });
   }
 
-  /** Flash red + screen shake on hit. */
+  /** Flash red + damage popup on hit. */
   playHitEffect(damage) {
     return new Promise(resolve => {
       this.updateHpBar();
 
-      // Flash red
       this.scene.tweens.add({
         targets: this.bodySprite,
         alpha: { from: 1, to: 0.1 },
@@ -140,9 +141,8 @@ export default class Mech extends Phaser.GameObjects.Container {
         },
       });
 
-      // Damage number popup
-      const dmgText = this.scene.add.text(this.x, this.y - 20, `-${damage}`, {
-        fontSize: '14px',
+      const dmgText = this.scene.add.text(this.x, this.y - 24, `-${damage}`, {
+        fontSize: '16px',
         fontFamily: 'monospace',
         color: '#ff4444',
         stroke: '#000000',
@@ -151,7 +151,7 @@ export default class Mech extends Phaser.GameObjects.Container {
 
       this.scene.tweens.add({
         targets: dmgText,
-        y: dmgText.y - 30,
+        y: dmgText.y - 36,
         alpha: 0,
         duration: 900,
         onComplete: () => dmgText.destroy(),
@@ -162,17 +162,17 @@ export default class Mech extends Phaser.GameObjects.Container {
   /** Show a "MISS" popup. */
   playMissEffect() {
     return new Promise(resolve => {
-      const txt = this.scene.add.text(this.x, this.y - 20, 'MISS!', {
-        fontSize: '12px',
+      const txt = this.scene.add.text(this.x, this.y - 24, 'MISS!', {
+        fontSize: '14px',
         fontFamily: 'monospace',
         color: '#aaaaaa',
         stroke: '#000000',
-        strokeThickness: 2,
+        strokeThickness: 3,
       }).setOrigin(0.5).setDepth(50);
 
       this.scene.tweens.add({
         targets: txt,
-        y: txt.y - 25,
+        y: txt.y - 30,
         alpha: 0,
         duration: 700,
         onComplete: () => { txt.destroy(); resolve(); },
@@ -180,13 +180,13 @@ export default class Mech extends Phaser.GameObjects.Container {
     });
   }
 
-  /** Green glow + "REPAIRED" text. */
+  /** Green glow + heal text. */
   playHealEffect() {
     return new Promise(resolve => {
       this.updateHpBar();
 
-      const txt = this.scene.add.text(this.x, this.y - 20, '+20 HP', {
-        fontSize: '13px',
+      const txt = this.scene.add.text(this.x, this.y - 24, '+20 HP', {
+        fontSize: '15px',
         fontFamily: 'monospace',
         color: '#44ff88',
         stroke: '#000000',
@@ -195,7 +195,7 @@ export default class Mech extends Phaser.GameObjects.Container {
 
       this.scene.tweens.add({
         targets: txt,
-        y: txt.y - 28,
+        y: txt.y - 32,
         alpha: 0,
         duration: 900,
         onComplete: () => { txt.destroy(); resolve(); },
@@ -221,14 +221,14 @@ export default class Mech extends Phaser.GameObjects.Container {
       });
 
       const boom = this.scene.add.text(this.x, this.y, '💥', {
-        fontSize: '28px',
+        fontSize: '32px',
       }).setOrigin(0.5).setDepth(50);
 
       this.scene.tweens.add({
         targets: boom,
         alpha: 0,
-        scaleX: 2,
-        scaleY: 2,
+        scaleX: 2.5,
+        scaleY: 2.5,
         duration: 600,
         onComplete: () => boom.destroy(),
       });

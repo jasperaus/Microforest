@@ -11,11 +11,11 @@ function ActionButton({ label, icon, disabled, onClick, color = '#224466', textC
         borderRadius: 5,
         color: disabled ? '#334455' : textColor,
         fontFamily: 'monospace',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 'bold',
-        padding: '6px 10px',
+        padding: '8px 14px',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        minWidth: 64,
+        minWidth: 80,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -26,7 +26,7 @@ function ActionButton({ label, icon, disabled, onClick, color = '#224466', textC
         WebkitUserSelect: 'none',
       }}
     >
-      <span style={{ fontSize: 14 }}>{icon}</span>
+      <span style={{ fontSize: 16 }}>{icon}</span>
       <span>{label}</span>
     </button>
   );
@@ -58,13 +58,13 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
       display: 'flex',
       flexDirection: 'column',
       gap: 6,
-      padding: '8px 10px',
+      padding: '10px 16px',
       background: '#0a0a1a',
-      borderTop: '1px solid #1a1a3a',
+      borderTop: '2px solid #1a1a3a',
     }}>
       {/* Phase label */}
       <div style={{
-        fontFamily: 'monospace', fontSize: 10, color: '#556688',
+        fontFamily: 'monospace', fontSize: 12, color: '#556688',
         textAlign: 'center', letterSpacing: 1,
       }}>
         {phaseLabels[phase] || phase}

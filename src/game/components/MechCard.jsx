@@ -54,10 +54,10 @@ export default function MechCard({ mech }) {
         background: '#0d0d1e',
         border: '1px solid #1a1a3a',
         borderRadius: 6,
-        padding: '10px 12px',
-        minWidth: 160,
+        padding: '12px 14px',
+        minWidth: 190,
         color: '#334466',
-        fontSize: 11,
+        fontSize: 12,
         fontFamily: 'monospace',
         textAlign: 'center',
       }}>
@@ -83,16 +83,16 @@ export default function MechCard({ mech }) {
       background: '#0d0d1e',
       border: `1px solid ${nameColor}44`,
       borderRadius: 6,
-      padding: '8px 10px',
-      minWidth: 160,
+      padding: '10px 12px',
+      minWidth: 190,
       fontFamily: 'monospace',
-      fontSize: 10,
+      fontSize: 11,
       color: '#ccccee',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontWeight: 'bold', color: nameColor, fontSize: 12 }}>{mech.name}</span>
-        <span style={{ color: '#667799', fontSize: 9 }}>{mech.class}</span>
+        <span style={{ fontWeight: 'bold', color: nameColor, fontSize: 14 }}>{mech.name}</span>
+        <span style={{ color: '#667799', fontSize: 10 }}>{mech.class}</span>
       </div>
 
       {/* AP dots */}
