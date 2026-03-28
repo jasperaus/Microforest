@@ -1,5 +1,6 @@
-import { PHASE } from '../../config.js';
+import { PHASE, getFacingFromMovement } from '../../config.js';
 import { coolDown } from './CombatResolver.js';
+import { executeAbility, getAbility } from './AbilityFactory.js';
 import EventBridge from '../EventBridge.js';
 
 /**
@@ -52,6 +53,8 @@ export default class TurnManager {
     if (this.phase === PHASE.MOVING || this.phase === PHASE.RESOLVING) return;
     if (mech.team !== 'player') return;
     if (!mech.alive) return;
+    // Bug fix: don't enter MECH_SELECTED with zero AP — highlights would be empty
+    if (mech.ap <= 0) return;
 
     this.selectedMech = mech;
     this.scene.clearHighlights();
@@ -84,11 +87,17 @@ export default class TurnManager {
     this.setPhase(PHASE.MOVING);
     this.scene.clearHighlights();
 
+    const fromRow = mech.row;
+    const fromCol = mech.col;
+
     // Update grid tracking
     this.scene.grid[mech.row][mech.col].mech = null;
     mech.row = targetRow;
     mech.col = targetCol;
     this.scene.grid[targetRow][targetCol].mech = mech;
+
+    // Update facing based on movement direction
+    mech.setFacing(getFacingFromMovement(fromRow, fromCol, targetRow, targetCol));
 
     // Animate movement
     await mech.moveTo(
@@ -153,96 +162,54 @@ export default class TurnManager {
   // ── Special action ─────────────────────────────────────────────────────────
 
   requestSpecial(mech) {
-    if (!mech || mech.ap < 2) {
-      EventBridge.emit('log', 'Special requires 2 AP!');
+    if (!mech || mech.special === 'none') return;
+
+    const ability = getAbility(mech.special);
+    const apRequired = ability ? ability.apCost : 2;
+    if (mech.ap < apRequired) {
+      EventBridge.emit('log', `${mech.name}: not enough AP for ${mech.specialName || 'special'}!`);
       return;
     }
-    if (mech.special === 'none') return;
 
     this.selectedMech = mech;
     this.executeSpecial(mech);
   }
 
   async executeSpecial(mech) {
-    switch (mech.special) {
-      case 'stealth':
-        mech.stealthed = true;
-        mech.ap -= 2;
-        EventBridge.emit('log', `${mech.name} activates Ghost Mode — invisible for 1 round!`);
-        await mech.playStealthEffect();
-        break;
-
-      case 'called_shot':
-        mech.calledShot = true;
-        mech.ap -= 1;
-        this.calledShotActive = true;
-        EventBridge.emit('log', `${mech.name} lines up a Called Shot — next attack +30% hit, +50% damage!`);
-        this.requestAttack(mech);
-        return;
-
-      case 'repair': {
-        // Find adjacent ally with lowest HP
-        const allies = this.scene.playerMechs.filter(m =>
-          m.alive && m !== mech &&
-          Math.abs(m.row - mech.row) + Math.abs(m.col - mech.col) <= 1
-        );
-        const target = allies.length > 0
-          ? allies.reduce((a, b) => a.hp < b.hp ? a : b)
-          : mech;
-        target.hp = Math.min(target.maxHp, target.hp + 20);
-        mech.ap -= 2;
-        EventBridge.emit('log', `${mech.name} repairs ${target.name} for 20 HP!`);
-        EventBridge.emit('mechUpdated', target.getState());
-        await target.playHealEffect();
-        break;
-      }
-
-      case 'shield_bash': {
-        this.selectedMech = mech;
-        mech.ap -= 2;
-        this.scene.showAttackHighlights(mech, 1);
-        this.setPhase(PHASE.SPECIAL_SELECT);
-        EventBridge.emit('log', 'Shield Bash ready — select an adjacent target!');
-        return;
-      }
-
-      case 'barrage': {
-        this.selectedMech = mech;
-        mech.ap -= 2;
-        this.scene.showAttackHighlights(mech, 6);
-        this.setPhase(PHASE.SPECIAL_SELECT);
-        EventBridge.emit('log', 'Missile Barrage ready — select a target tile!');
-        return;
-      }
-
-      default:
-        break;
-    }
-
-    this.selectedMech = mech;
-    this.setPhase(PHASE.MECH_SELECTED);
-    EventBridge.emit('mechSelected', mech.getState());
+    // Delegate entirely to the data-driven AbilityFactory
+    await executeAbility(mech.special, mech, this, this.scene);
   }
 
   async executeSpecialAttack(attacker, target) {
     this.setPhase(PHASE.RESOLVING);
     this.scene.clearHighlights();
 
-    if (attacker.special === 'barrage') {
-      // Hit target + all adjacent tiles
-      const targets = [target];
-      const adjacent = this.scene.getAdjacentMechs(target.row, target.col, 'enemy');
-      targets.push(...adjacent);
+    const ability = getAbility(attacker.special);
 
-      for (const t of targets) {
-        await this.scene.resolveCombat(attacker, t, 0, { damage: 8, isBarrage: true });
-      }
-      EventBridge.emit('log', `${attacker.name} launches Missile Barrage — ${targets.length} targets hit!`);
+    if (attacker.special === 'barrage') {
+      // Hit primary target + all adjacent mechs of the opposing team
+      const opposingTeam = attacker.team === 'player' ? 'enemy' : 'player';
+      const splashTargets = this.scene.getAdjacentMechs(target.row, target.col, opposingTeam);
+      const allTargets = [target, ...splashTargets.filter(m => m !== target)];
+
+      const damage = ability ? ability.damage : 8;
+
+      // Fire all animations concurrently for cinematic feel
+      await Promise.all(
+        allTargets.map(t => this.scene.resolveCombat(attacker, t, 0, { damage, isBarrage: true }))
+      );
+      EventBridge.emit('log',
+        `${attacker.name} launches Missile Barrage — ${allTargets.length} target(s) hit!`
+      );
+
     } else if (attacker.special === 'shield_bash') {
-      const result = await this.scene.resolveCombat(attacker, target, 1, { damageBonus: 8 });
-      // Knockback
-      const dr = target.row - attacker.row;
-      const dc = target.col - attacker.col;
+      const damageBonus = ability ? ability.damageBonus : 8;
+      const weaponIndex = ability ? (ability.weaponIndex || 1) : 1;
+      await this.scene.resolveCombat(attacker, target, weaponIndex, { damageBonus });
+
+      // Knockback: unit vector so distance is always exactly 1 tile
+      const dr = Math.sign(target.row - attacker.row);
+      const dc = Math.sign(target.col - attacker.col);
       const nr = target.row + dr;
       const nc = target.col + dc;
       if (this.scene.isValidAndEmpty(nr, nc)) {
