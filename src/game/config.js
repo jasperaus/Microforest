@@ -3,7 +3,7 @@
 export const TILE_SIZE = 80;
 export const GRID_COLS = 12;
 export const GRID_ROWS = 8;
-export const GRID_OFFSET_X = 80;   // left margin (room for HUD)
+export const GRID_OFFSET_X = 240;  // left margin — must clear the 220px HUD left panel
 export const GRID_OFFSET_Y = 60;   // top margin (room for header bar)
 export const CANVAS_WIDTH  = 1280;
 export const CANVAS_HEIGHT = 800;

@@ -43,13 +43,13 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
   const canEndTurn = isPlayerTurn && !isAnimating;
 
   const phaseLabels = {
-    IDLE: 'Select a mech',
+    IDLE: 'Click a mech on the battlefield to select it',
     MECH_SELECTED: `${selectedMech?.name || ''} selected`,
     MOVING: 'Moving...',
     ATTACK_SELECT: 'Choose target',
     RESOLVING: 'Resolving...',
     SPECIAL_SELECT: 'Choose target',
-    ENEMY_TURN: 'Enemy turn...',
+    ENEMY_TURN: 'Enemy turn — stand by...',
     GAME_OVER: 'Game Over',
   };
 
@@ -68,8 +68,10 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
         textAlign: 'center', letterSpacing: 1,
       }}>
         {phaseLabels[phase] || phase}
-        {phase === 'ATTACK_SELECT' && <span style={{ color: '#ff4444' }}> — click enemy to fire</span>}
-        {phase === 'MECH_SELECTED' && <span style={{ color: '#4488ff' }}> — click blue tile to move</span>}
+        {phase === 'IDLE' && <span style={{ color: '#334455' }}> (right side of battlefield)</span>}
+        {phase === 'MECH_SELECTED' && <span style={{ color: '#4488ff' }}> — click a blue tile to move, or press ATTACK</span>}
+        {phase === 'ATTACK_SELECT' && <span style={{ color: '#ff4444' }}> — click a red-highlighted enemy to fire</span>}
+        {phase === 'SPECIAL_SELECT' && <span style={{ color: '#aa44ff' }}> — click a highlighted target</span>}
       </div>
 
       {/* Action buttons */}

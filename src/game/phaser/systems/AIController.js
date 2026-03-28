@@ -33,8 +33,11 @@ export default class AIController {
 
     const enemy = remaining.shift();
     this.scene.time.delayedCall(AI_DELAY, () => {
-      this._actEnemy(enemy, () => {
-        this._runNextEnemy(remaining, onComplete);
+      const next = () => this._runNextEnemy(remaining, onComplete);
+      // Always advance even if this enemy's turn throws an error
+      this._actEnemy(enemy, next).catch(err => {
+        console.warn('AI action error (continuing):', err);
+        next();
       });
     });
   }
@@ -53,6 +56,8 @@ export default class AIController {
     });
 
     const weaponData = this.scene.getWeapon(enemy, 0);
+    if (!weaponData) { onDone(); return; }
+
     const dist = manhattanDistance(enemy.row, enemy.col, target.row, target.col);
 
     // === Move phase ===
