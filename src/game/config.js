@@ -13,6 +13,20 @@ export const MECH_SPRITE_SIZE = 64;
 // Texture generation size for mechs (high-detail procedural)
 export const MECH_TEX_SIZE = 96;
 
+// ── Facing directions ────────────────────────────────────────────────────────
+export const FACING = { N: 'N', S: 'S', E: 'E', W: 'W' };
+
+/**
+ * Derive facing direction from a move delta.
+ * Primary axis (largest delta) wins; ties go to the column axis.
+ */
+export function getFacingFromMovement(fromRow, fromCol, toRow, toCol) {
+  const dr = toRow - fromRow;
+  const dc = toCol - fromCol;
+  if (Math.abs(dr) > Math.abs(dc)) return dr > 0 ? 'S' : 'N';
+  return dc >= 0 ? 'E' : 'W';
+}
+
 // ── Tile types ───────────────────────────────────────────────────────────────
 export const TILE_GRASS     = 0;
 export const TILE_WALL      = 1;

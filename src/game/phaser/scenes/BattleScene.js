@@ -1,18 +1,13 @@
 import Phaser from 'phaser';
-import {
-  TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y,
-  TILE_GRASS, TILE_WALL, TILE_WATER, TILE_OBJECTIVE,
-  HIGHLIGHT_MOVE, HIGHLIGHT_ATTACK, HIGHLIGHT_SELECT, HIGHLIGHT_SPECIAL,
-  PHASE,
-} from '../../config.js';
+import { PHASE } from '../../config.js';
 import mechsData from '../../data/mechs.json';
 import weaponsData from '../../data/weapons.json';
 import campaignsData from '../../data/campaigns.json';
 import Mech from '../entities/Mech.js';
 import TurnManager from '../systems/TurnManager.js';
 import AIController from '../systems/AIController.js';
+import GridManager from '../systems/GridManager.js';
 import { resolveAttack, isFlanking, applyDamage, applyHeat } from '../systems/CombatResolver.js';
-import { getReachableTiles, getAttackTiles, manhattanDistance } from '../systems/PathFinder.js';
 import EventBridge from '../EventBridge.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -33,17 +28,18 @@ export default class BattleScene extends Phaser.Scene {
   // ── Create ────────────────────────────────────────────────────────────────
 
   create() {
-    this.grid = [];           // 2D array of tile objects
     this.playerMechs = [];
     this.enemyMechs = [];
-    this.highlightSprites = []; // active highlight rectangles
     this.weaponsMap = {};
 
     // Pre-index weapons
     weaponsData.forEach(w => { this.weaponsMap[w.id] = w; });
 
-    // Build map
-    this._buildGrid();
+    // GridManager owns the tile grid and all highlight logic
+    this.gridManager = new GridManager(this);
+    this.grid = this.gridManager.build(this.mission.map);
+    // Keep a flat highlightSprites reference for legacy compatibility
+    this.highlightSprites = this.gridManager.highlightSprites;
 
     // Spawn mechs
     this._spawnMechs();
@@ -70,56 +66,13 @@ export default class BattleScene extends Phaser.Scene {
     this.cameras.main.fadeIn(500, 0, 0, 0);
   }
 
-  // ── Grid ──────────────────────────────────────────────────────────────────
+  // ── Grid wrappers (delegate to GridManager) ───────────────────────────────
 
-  _buildGrid() {
-    const mapData = this.mission.map;
-
-    for (let row = 0; row < mapData.length; row++) {
-      this.grid[row] = [];
-      for (let col = 0; col < mapData[row].length; col++) {
-        const type = mapData[row][col];
-        const x = this.tileX(col);
-        const y = this.tileY(row);
-
-        const textureKey = ['tile_grass', 'tile_wall', 'tile_water', 'tile_objective'][type] || 'tile_grass';
-        const sprite = this.add.image(x, y, textureKey).setDepth(0);
-
-        // Grid line
-        const border = this.add.rectangle(x, y, TILE_SIZE - 1, TILE_SIZE - 1, 0x000000, 0)
-          .setStrokeStyle(0.5, 0x000000, 0.3).setDepth(1);
-
-        this.grid[row][col] = {
-          row, col, type,
-          x, y,
-          walkable: type === TILE_GRASS || type === TILE_OBJECTIVE,
-          mech: null,
-          sprite,
-          border,
-          highlight: null,
-        };
-      }
-    }
-  }
-
-  tileX(col) { return GRID_OFFSET_X + col * TILE_SIZE + TILE_SIZE / 2; }
-  tileY(row) { return GRID_OFFSET_Y + row * TILE_SIZE + TILE_SIZE / 2; }
-
-  pixelToGrid(px, py) {
-    const col = Math.floor((px - GRID_OFFSET_X) / TILE_SIZE);
-    const row = Math.floor((py - GRID_OFFSET_Y) / TILE_SIZE);
-    return { row, col };
-  }
-
-  isValidTile(row, col) {
-    return row >= 0 && row < this.grid.length && col >= 0 && col < this.grid[0].length;
-  }
-
-  isValidAndEmpty(row, col) {
-    if (!this.isValidTile(row, col)) return false;
-    const tile = this.grid[row][col];
-    return tile.walkable && tile.mech === null;
-  }
+  tileX(col) { return this.gridManager.tileX(col); }
+  tileY(row) { return this.gridManager.tileY(row); }
+  pixelToGrid(px, py) { return this.gridManager.pixelToGrid(px, py); }
+  isValidTile(row, col) { return this.gridManager.isValidTile(row, col); }
+  isValidAndEmpty(row, col) { return this.gridManager.isValidAndEmpty(row, col); }
 
   // ── Mech spawning ─────────────────────────────────────────────────────────
 
@@ -236,69 +189,15 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  // ── Highlight management ──────────────────────────────────────────────────
+  // ── Highlight management (delegate to GridManager) ────────────────────────
 
   clearHighlights() {
-    this.highlightSprites.forEach(s => s.destroy());
-    this.highlightSprites = [];
-    for (let row = 0; row < this.grid.length; row++) {
-      for (let col = 0; col < this.grid[0].length; col++) {
-        this.grid[row][col].highlight = null;
-      }
-    }
-    // Clear mech selection rings
-    [...this.playerMechs, ...this.enemyMechs].forEach(m => m.alive && m.setSelected && m.setSelected(false));
+    this.gridManager.clearHighlights();
+    this.highlightSprites = this.gridManager.highlightSprites;
   }
 
-  showMoveHighlights(mech) {
-    if (mech.ap < 1) return;
-    const allMechs = [...this.playerMechs, ...this.enemyMechs].filter(m => m.alive && m !== mech);
-    const tiles = getReachableTiles(this.grid, mech.row, mech.col, mech.speed, allMechs);
-
-    tiles.forEach(({ row, col }) => {
-      const tile = this.grid[row][col];
-      if (!tile.walkable || tile.mech) return;
-      const hl = this.add.rectangle(tile.x, tile.y, TILE_SIZE - 2, TILE_SIZE - 2, HIGHLIGHT_MOVE, 0.35)
-        .setStrokeStyle(1.5, HIGHLIGHT_MOVE, 0.9).setDepth(5);
-      tile.highlight = 'move';
-      this.highlightSprites.push(hl);
-    });
-
-    // Selected mech ring
-    mech.setSelected(true);
-
-    // Show attack range as a faint overlay
-    const weapon = this.getWeapon(mech, 0);
-    if (weapon) {
-      const attackTiles = getAttackTiles(this.grid, mech.row, mech.col, weapon.range);
-      attackTiles.forEach(({ row, col }) => {
-        const tile = this.grid[row][col];
-        if (tile.mech && tile.mech.team === 'enemy' && tile.mech.alive) {
-          const hl = this.add.rectangle(tile.x, tile.y, TILE_SIZE - 2, TILE_SIZE - 2, HIGHLIGHT_ATTACK, 0.18)
-            .setStrokeStyle(1, HIGHLIGHT_ATTACK, 0.5).setDepth(5);
-          this.highlightSprites.push(hl);
-        }
-      });
-    }
-  }
-
-  showAttackHighlights(mech, rangeOverride) {
-    const weapon = this.getWeapon(mech, 0);
-    const range = rangeOverride !== undefined ? rangeOverride : (weapon ? weapon.range : 3);
-
-    const tiles = getAttackTiles(this.grid, mech.row, mech.col, range);
-    tiles.forEach(({ row, col }) => {
-      const tile = this.grid[row][col];
-      if (tile.mech && tile.mech.team === 'enemy' && tile.mech.alive) {
-        const hl = this.add.rectangle(tile.x, tile.y, TILE_SIZE - 2, TILE_SIZE - 2, HIGHLIGHT_ATTACK, 0.4)
-          .setStrokeStyle(2, HIGHLIGHT_ATTACK, 1).setDepth(5);
-        tile.highlight = 'attack';
-        this.highlightSprites.push(hl);
-      }
-    });
-
-    mech.setSelected(true);
-  }
+  showMoveHighlights(mech) { this.gridManager.showMoveHighlights(mech); }
+  showAttackHighlights(mech, rangeOverride) { this.gridManager.showAttackHighlights(mech, rangeOverride); }
 
   // ── Weapon helpers ────────────────────────────────────────────────────────
 
@@ -321,26 +220,42 @@ export default class BattleScene extends Phaser.Scene {
       : weapon;
     const flanking = options.flanking !== undefined ? options.flanking : isFlanking(attacker, target);
 
-    const result = resolveAttack(attacker, target, effectiveWeapon, { ...options, flanking });
+    // Pass the live grid so CombatResolver can check LoS and cover
+    const result = resolveAttack(attacker, target, effectiveWeapon, {
+      ...options,
+      flanking,
+      grid: this.grid,
+    });
 
     // Apply heat to attacker
-    applyHeat(attacker, result.heatGain);
+    const overheatedNow = applyHeat(attacker, result.heatGain);
 
     if (result.hit) {
-      // Apply damage to target
+      const prevFrontArmor = target.frontArmor;
+      const prevRearArmor  = target.rearArmor;
       const died = applyDamage(target, result.damage, flanking);
-      await target.playHitEffect(result.damage);
+
+      const armorBroken = flanking
+        ? (prevRearArmor > 0 && target.rearArmor <= 0)
+        : (prevFrontArmor > 0 && target.frontArmor <= 0);
+
+      await target.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken });
 
       if (died) {
         target.alive = false;
         await target.playDeathEffect();
+        this.cameras.main.shake(200, 0.012);
         this.grid[target.row][target.col].mech = null;
 
         if (target.team === 'enemy') this.stats.enemiesKilled++;
         else this.stats.mechsLost++;
 
         EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
+      } else {
+        if (result.damage >= 15) this.cameras.main.shake(100, 0.006);
       }
+
+      if (overheatedNow) await attacker.playOverheatEffect();
     } else {
       await target.playMissEffect();
     }
@@ -355,14 +270,15 @@ export default class BattleScene extends Phaser.Scene {
 
   checkGameOver() {
     const playerAlive = this.playerMechs.filter(m => m.alive);
-    const enemyAlive = this.enemyMechs.filter(m => m.alive);
+    const enemyAlive  = this.enemyMechs.filter(m => m.alive);
 
-    if (playerAlive.length === 0) {
-      this._endGame(false);
-      return true;
-    }
+    // Check enemy wipe first: if both sides die on the same action, player wins
     if (enemyAlive.length === 0) {
       this._endGame(true);
+      return true;
+    }
+    if (playerAlive.length === 0) {
+      this._endGame(false);
       return true;
     }
     return false;
@@ -388,15 +304,7 @@ export default class BattleScene extends Phaser.Scene {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   getAdjacentMechs(row, col, team) {
-    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    const result = [];
-    dirs.forEach(([dr, dc]) => {
-      const nr = row + dr, nc = col + dc;
-      if (!this.isValidTile(nr, nc)) return;
-      const m = this.grid[nr][nc].mech;
-      if (m && m.alive && (team === 'any' || m.team === team)) result.push(m);
-    });
-    return result;
+    return this.gridManager.getAdjacentMechs(row, col, team);
   }
 
   _showMissionHeader() {

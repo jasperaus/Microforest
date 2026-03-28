@@ -2,7 +2,7 @@ import { TILE_WALL, TILE_WATER } from '../../config.js';
 
 /**
  * BFS flood-fill: returns all tiles reachable within `steps` moves.
- * Blocked by walls, water, and optionally enemy mechs.
+ * Blocked by walls, water, and optionally other mechs.
  */
 export function getReachableTiles(grid, startRow, startCol, steps, blockedByMechs = []) {
   const rows = grid.length;
@@ -18,7 +18,6 @@ export function getReachableTiles(grid, startRow, startCol, steps, blockedByMech
 
   while (queue.length > 0) {
     const { row, col, stepsLeft } = queue.shift();
-
     if (stepsLeft === 0) continue;
 
     const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
@@ -51,9 +50,44 @@ export function manhattanDistance(r1, c1, r2, c2) {
 }
 
 /**
- * Get all tiles within attack range (simple Manhattan radius, ignoring walls).
+ * Bresenham's line-of-sight check.
+ * Returns false if any intermediate tile between origin and target is a wall.
  */
-export function getAttackTiles(grid, fromRow, fromCol, range) {
+export function hasLineOfSight(grid, fromRow, fromCol, toRow, toCol) {
+  let x0 = fromCol, y0 = fromRow;
+  const x1 = toCol,  y1 = toRow;
+
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+
+  while (true) {
+    // Check intermediate tiles (not origin, not destination)
+    const isOrigin      = x0 === fromCol && y0 === fromRow;
+    const isDestination = x0 === x1      && y0 === y1;
+
+    if (!isOrigin && !isDestination) {
+      if (!grid[y0] || !grid[y0][x0]) return false;
+      if (grid[y0][x0].type === TILE_WALL) return false;
+    }
+
+    if (isDestination) break;
+
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 <  dx) { err += dx; y0 += sy; }
+  }
+
+  return true;
+}
+
+/**
+ * Get all tiles within attack range (Manhattan radius).
+ * When checkLoS is true, tiles blocked by walls are excluded.
+ */
+export function getAttackTiles(grid, fromRow, fromCol, range, checkLoS = false) {
   const rows = grid.length;
   const cols = grid[0].length;
   const tiles = [];
@@ -61,10 +95,9 @@ export function getAttackTiles(grid, fromRow, fromCol, range) {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (r === fromRow && c === fromCol) continue;
-      const dist = manhattanDistance(fromRow, fromCol, r, c);
-      if (dist <= range) {
-        tiles.push({ row: r, col: c });
-      }
+      if (manhattanDistance(fromRow, fromCol, r, c) > range) continue;
+      if (checkLoS && !hasLineOfSight(grid, fromRow, fromCol, r, c)) continue;
+      tiles.push({ row: r, col: c });
     }
   }
 
@@ -72,8 +105,7 @@ export function getAttackTiles(grid, fromRow, fromCol, range) {
 }
 
 /**
- * Simple A* pathfinding — returns array of {row, col} steps from start to goal.
- * Used by AI to navigate toward targets.
+ * A* pathfinding — returns array of {row, col} steps from start toward goal.
  */
 export function findPath(grid, startRow, startCol, goalRow, goalCol, blockedByMechs = []) {
   const rows = grid.length;
@@ -94,7 +126,6 @@ export function findPath(grid, startRow, startCol, goalRow, goalCol, blockedByMe
     const { row, col } = current;
 
     if (row === goalRow && col === goalCol) {
-      // Reconstruct path
       const path = [];
       let k = key(row, col);
       while (cameFrom.has(k)) {
@@ -120,11 +151,10 @@ export function findPath(grid, startRow, startCol, goalRow, goalCol, blockedByMe
       if (tentativeG < (gScore.get(nk) || Infinity)) {
         cameFrom.set(nk, key(row, col));
         gScore.set(nk, tentativeG);
-        const f = tentativeG + heuristic(nr, nc);
-        open.push({ row: nr, col: nc, g: tentativeG, f });
+        open.push({ row: nr, col: nc, g: tentativeG, f: tentativeG + heuristic(nr, nc) });
       }
     }
   }
 
-  return []; // No path found
+  return [];
 }

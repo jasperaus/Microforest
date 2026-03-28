@@ -39,6 +39,9 @@ export default class Mech extends Phaser.GameObjects.Container {
     this.calledShot = false;
     this.activatedThisTurn = false;
 
+    // Facing direction — player mechs start facing east (toward enemies)
+    this.facing = data.facing || (data.team === 'player' ? 'E' : 'W');
+
     // Build sprite visuals
     this._buildSprite(scene, data);
 
@@ -83,6 +86,11 @@ export default class Mech extends Phaser.GameObjects.Container {
     this.ring.setStrokeStyle(2, ringColor, 0.7);
     this.add(this.ring);
 
+    // Facing indicator — small triangle below the sprite showing N/S/E/W
+    this._facingIndicator = scene.add.graphics();
+    this.add(this._facingIndicator);
+    this._updateFacingIndicator(this.facing);
+
     // Flip enemy mechs to face left
     if (data.team === 'enemy') {
       this.bodySprite.setFlipX(true);
@@ -105,6 +113,37 @@ export default class Mech extends Phaser.GameObjects.Container {
     this.ring.setDisplaySize(sz, sz);
   }
 
+  /** Update the facing direction and redraw the facing indicator. */
+  setFacing(dir) {
+    this.facing = dir;
+    this._updateFacingIndicator(dir);
+  }
+
+  _updateFacingIndicator(facing) {
+    const g = this._facingIndicator;
+    g.clear();
+    g.fillStyle(0xffcc44, 0.85);
+
+    // Draw a small solid triangle pointing in the facing direction
+    // positioned just outside the sprite bounds
+    const sz = 7;
+    const base = 30; // distance from center to base of triangle
+    switch (facing) {
+      case 'N':
+        g.fillTriangle(0, -(base + sz), -sz, -base, sz, -base);
+        break;
+      case 'S':
+        g.fillTriangle(0, base + sz, -sz, base, sz, base);
+        break;
+      case 'E':
+        g.fillTriangle(base + sz, 0, base, -sz, base, sz);
+        break;
+      case 'W':
+        g.fillTriangle(-(base + sz), 0, -base, -sz, -base, sz);
+        break;
+    }
+  }
+
   setDimmed(dimmed) {
     this.bodySprite.setAlpha(dimmed ? 0.4 : 1);
     this.ring.setAlpha(dimmed ? 0.3 : 1);
@@ -124,37 +163,79 @@ export default class Mech extends Phaser.GameObjects.Container {
     });
   }
 
-  /** Flash red + damage popup on hit. */
-  playHitEffect(damage) {
+  /** Flash red + damage popup on hit. opts: { isCrit, armorBroken } */
+  playHitEffect(damage, opts = {}) {
     return new Promise(resolve => {
       this.updateHpBar();
+
+      const flashColor = opts.isCrit ? '#ffaa00' : '#ff4444';
+      const flashRepeats = opts.isCrit ? 4 : 2;
 
       this.scene.tweens.add({
         targets: this.bodySprite,
         alpha: { from: 1, to: 0.1 },
         yoyo: true,
-        repeat: 2,
-        duration: 80,
+        repeat: flashRepeats,
+        duration: 70,
         onComplete: () => {
           this.bodySprite.setAlpha(this.stealthed ? 0.3 : 1);
           resolve();
         },
       });
 
-      const dmgText = this.scene.add.text(this.x, this.y - 24, `-${damage}`, {
-        fontSize: '16px',
+      const label = opts.isCrit ? `CRIT! -${damage}` : `-${damage}`;
+      const dmgText = this.scene.add.text(this.x, this.y - 24, label, {
+        fontSize: opts.isCrit ? '20px' : '16px',
         fontFamily: 'monospace',
-        color: '#ff4444',
+        color: flashColor,
         stroke: '#000000',
         strokeThickness: 3,
       }).setOrigin(0.5).setDepth(50);
 
       this.scene.tweens.add({
         targets: dmgText,
-        y: dmgText.y - 36,
+        y: dmgText.y - 40,
+        alpha: 0,
+        duration: 950,
+        onComplete: () => dmgText.destroy(),
+      });
+
+      if (opts.armorBroken) {
+        const armText = this.scene.add.text(this.x, this.y - 8, 'ARMOR BREAK!', {
+          fontSize: '11px',
+          fontFamily: 'monospace',
+          color: '#ff8800',
+          stroke: '#000000',
+          strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(50);
+        this.scene.tweens.add({
+          targets: armText,
+          y: armText.y - 28,
+          alpha: 0,
+          duration: 1100,
+          onComplete: () => armText.destroy(),
+        });
+      }
+    });
+  }
+
+  /** Orange overheat popup. */
+  playOverheatEffect() {
+    return new Promise(resolve => {
+      const txt = this.scene.add.text(this.x, this.y - 32, 'OVERHEAT!', {
+        fontSize: '14px',
+        fontFamily: 'monospace',
+        color: '#ff6600',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(50);
+
+      this.scene.tweens.add({
+        targets: txt,
+        y: txt.y - 30,
         alpha: 0,
         duration: 900,
-        onComplete: () => dmgText.destroy(),
+        onComplete: () => { txt.destroy(); resolve(); },
       });
     });
   }
@@ -269,6 +350,7 @@ export default class Mech extends Phaser.GameObjects.Container {
       alive: this.alive,
       stealthed: this.stealthed,
       overheated: this.overheated,
+      facing: this.facing,
       special: this.special,
       specialName: this.specialName,
       weapons: this.weapons,

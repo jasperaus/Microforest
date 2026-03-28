@@ -1,0 +1,50 @@
+[
+  {
+    "id": "stealth",
+    "name": "Ghost Mode",
+    "apCost": 2,
+    "effect": "stealth",
+    "targetMode": "self",
+    "description": "Become invisible to enemies for 1 round."
+  },
+  {
+    "id": "called_shot",
+    "name": "Called Shot",
+    "apCost": 1,
+    "effect": "called_shot",
+    "targetMode": "follow_attack",
+    "description": "Next attack: +30% hit chance, +50% damage."
+  },
+  {
+    "id": "repair",
+    "name": "Emergency Repair",
+    "apCost": 2,
+    "effect": "heal",
+    "targetMode": "adjacent_ally_or_self",
+    "healAmount": 20,
+    "description": "Restore 20 HP to self or an adjacent ally."
+  },
+  {
+    "id": "shield_bash",
+    "name": "Shield Bash",
+    "apCost": 2,
+    "effect": "melee_knockback",
+    "targetMode": "adjacent_enemy",
+    "range": 1,
+    "weaponIndex": 1,
+    "damageBonus": 8,
+    "knockbackDist": 1,
+    "description": "Knock an adjacent enemy back 1 tile and deal bonus damage."
+  },
+  {
+    "id": "barrage",
+    "name": "Missile Barrage",
+    "apCost": 2,
+    "effect": "aoe_attack",
+    "targetMode": "ranged_enemy",
+    "range": 6,
+    "damage": 8,
+    "splashRadius": 1,
+    "description": "Fire missiles at a target and all adjacent to it."
+  }
+]
