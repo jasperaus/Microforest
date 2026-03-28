@@ -39,7 +39,7 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
   const canAct = hasMech && isPlayerTurn && !isAnimating;
   const canMove = canAct && selectedMech.ap >= 1;
   const canAttack = canAct && selectedMech.ap >= 1 && !selectedMech.overheated;
-  const canSpecial = canAct && selectedMech.ap >= 2 && selectedMech.special !== 'none' && selectedMech.special !== 'stealth' || (canAct && selectedMech.ap >= 2);
+  const canSpecial = canAct && selectedMech.ap >= 2 && selectedMech.special && selectedMech.special !== 'none';
   const canEndTurn = isPlayerTurn && !isAnimating;
 
   const phaseLabels = {

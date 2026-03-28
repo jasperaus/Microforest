@@ -19,13 +19,20 @@ export default function IronCadetsGame({ onBack }) {
   const gameRef = useRef(null);
   const [activeScene, setActiveScene] = useState('BootScene');
   const [hudVisible, setHudVisible] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     let game = null;
 
     // Dynamic Phaser import to avoid SSR issues
     const initPhaser = async () => {
-      const Phaser = await import('phaser');
+      let Phaser;
+      try {
+        Phaser = await import('phaser');
+      } catch (e) {
+        setLoadError('Failed to load game engine. Please refresh the page.');
+        return;
+      }
 
       game = new Phaser.default.Game({
         type: Phaser.default.AUTO,
@@ -69,6 +76,16 @@ export default function IronCadetsGame({ onBack }) {
       gameRef.current = null;
     };
   }, []);
+
+  if (loadError) {
+    return (
+      <div style={{ background: '#0a0a1e', color: '#ff4444', fontFamily: 'monospace', padding: 32, textAlign: 'center' }}>
+        <div style={{ fontSize: 20, marginBottom: 12 }}>⚠ Engine Load Error</div>
+        <div style={{ fontSize: 12, color: '#888' }}>{loadError}</div>
+        <button onClick={onBack} style={{ marginTop: 20, padding: '8px 20px', cursor: 'pointer', background: '#112244', color: '#aaccff', border: '1px solid #334466', borderRadius: 4, fontFamily: 'monospace' }}>← Back to Home</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{

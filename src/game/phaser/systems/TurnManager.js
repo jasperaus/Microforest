@@ -264,7 +264,11 @@ export default class TurnManager {
   // ── End player turn ────────────────────────────────────────────────────────
 
   endPlayerTurn() {
-    if (this.phase === PHASE.MOVING || this.phase === PHASE.RESOLVING) return;
+    // Guard against double-calls (rapid clicks) and non-player states
+    if (this.phase === PHASE.ENEMY_TURN ||
+        this.phase === PHASE.MOVING ||
+        this.phase === PHASE.RESOLVING ||
+        this.phase === PHASE.GAME_OVER) return;
     this.deselectMech();
     this.setPhase(PHASE.ENEMY_TURN);
     EventBridge.emit('turnStart', { team: 'enemy', turn: this.turnNumber });

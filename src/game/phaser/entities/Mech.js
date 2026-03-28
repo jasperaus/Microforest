@@ -54,14 +54,14 @@ export default class Mech extends Phaser.GameObjects.Container {
     this.bodySprite.setDisplaySize(44, 44);
     this.add(this.bodySprite);
 
-    // HP bar background
-    this.hpBarBg = scene.add.rectangle(0, 24, 40, 5, 0x000000);
+    // HP bar — fixed-width track with a fill that shrinks from right
+    this.hpBarBg = scene.add.rectangle(0, 24, 40, 6, 0x111111);
+    this.hpBarBg.setStrokeStyle(1, 0x000000);
     this.add(this.hpBarBg);
 
-    // HP bar fill
-    this.hpBar = scene.add.rectangle(-20 + 20, 24, 40, 5, 0x44ff44);
-    this.hpBar.setOrigin(0, 0.5);
-    this.hpBar.setX(-20);
+    // Fill starts at left edge (-20) and scales width from left anchor
+    this.hpBar = scene.add.rectangle(-20, 24, 40, 6, 0x44ff44);
+    this.hpBar.setOrigin(0, 0.5); // left-anchored so shrinking goes rightward
     this.add(this.hpBar);
 
     // Name tag
@@ -88,7 +88,8 @@ export default class Mech extends Phaser.GameObjects.Container {
 
   updateHpBar() {
     const pct = Math.max(0, this.hp / this.maxHp);
-    this.hpBar.setDisplaySize(Math.floor(40 * pct), 5);
+    // Width shrinks from the right; origin is at left edge so x stays fixed at -20
+    this.hpBar.width = Math.max(1, Math.floor(40 * pct));
     const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffcc00 : 0xff3333;
     this.hpBar.setFillStyle(color);
   }

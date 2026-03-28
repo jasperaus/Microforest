@@ -60,7 +60,8 @@ export default class AIController {
       if (dist > weaponData.range) {
         // Move toward target
         const otherMechs = [
-          ...this.scene.playerMechs.filter(m => m.alive),
+          // Stealthed player mechs don't block movement
+          ...this.scene.playerMechs.filter(m => m.alive && !m.stealthed),
           ...this.scene.enemyMechs.filter(m => m.alive && m !== enemy),
         ];
         const path = findPath(
@@ -71,11 +72,16 @@ export default class AIController {
         );
 
         if (path.length > 0) {
-          // Move up to `speed` tiles along path
-          const stepsToTake = Math.min(enemy.speed, path.length - 1);
-          if (stepsToTake > 0) {
-            const dest = path[stepsToTake];
-            if (this.scene.grid[dest.row][dest.col].mech === null) {
+          // path = [step1, step2, ..., goalTile]. path[i] is (i+1) moves from start.
+          // We want to move up to `speed` tiles but never land on the goal tile
+          // (it is occupied by the target mech).
+          // Correct index: min(speed - 1, path.length - 2)
+          //   speed-1  → 0-indexed max step count
+          //   path.length-2 → last tile before goal
+          const destIndex = Math.min(enemy.speed - 1, path.length - 2);
+          if (destIndex >= 0) {
+            const dest = path[destIndex];
+            if (dest && this.scene.grid[dest.row][dest.col].mech === null) {
               this.scene.grid[enemy.row][enemy.col].mech = null;
               enemy.row = dest.row;
               enemy.col = dest.col;

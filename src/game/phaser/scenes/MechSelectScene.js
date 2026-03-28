@@ -135,6 +135,12 @@ export default class MechSelectScene extends Phaser.Scene {
       bg.setFillStyle(0x112244);
       bg.setStrokeStyle(2, 0x334466);
       img.setAlpha(1);
+      // Destroy badge to prevent memory leak
+      if (card.badge) { card.badge.destroy(); card.badge = null; }
+      // Renumber remaining badges
+      this.cards.filter(c => c.selected).forEach((c, i) => {
+        if (c.badge) c.badge.setText(`${i + 1}`);
+      });
     } else {
       if (this.selected.length >= this.maxSelect) return;
       card.selected = true;

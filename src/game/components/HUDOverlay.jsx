@@ -21,8 +21,11 @@ export default function HUDOverlay({ gameRef }) {
   }, []);
 
   useEffect(() => {
-    // Register with EventBridge to receive Phaser events
+    // Use a mounted flag to prevent setState calls after unmount (EventBridge race condition)
+    let mounted = true;
+
     const handleEvent = ({ event, data }) => {
+      if (!mounted) return;
       switch (event) {
         case 'phaseChange':
           setPhase(data.phase);
@@ -72,7 +75,10 @@ export default function HUDOverlay({ gameRef }) {
     };
 
     EventBridge.setListener(handleEvent);
-    return () => EventBridge.clearListener();
+    return () => {
+      mounted = false;
+      EventBridge.clearListener();
+    };
   }, [addLog]);
 
   // Scroll log to bottom

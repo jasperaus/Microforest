@@ -28,12 +28,8 @@ export function resolveAttack(attacker, target, weapon, options = {}) {
     };
   }
 
-  // Determine armor zone (rear if flanking or approaching from behind)
-  const armorValue = flanking ? target.rearArmor : target.frontArmor;
-
-  // Calculate damage (armor reduces incoming damage)
-  const armorReduction = Math.floor(armorValue * 0.2); // Armor absorbs ~20% as flat reduction
-  let damage = Math.max(1, weapon.damage - armorReduction);
+  // Raw weapon damage (armor is applied separately in applyDamage to avoid double-reduction)
+  let damage = weapon.damage;
   if (calledShot) damage = Math.floor(damage * 1.5);
 
   return {
@@ -97,10 +93,12 @@ export function applyHeat(mech, heatGain) {
 }
 
 /**
- * Cool down a mech at the start of its turn (reduce heat by 25%).
+ * Cool down a mech at the start of its turn (reduce heat by 25% of maxHeat).
+ * Percentage-based so all mech types cool at the same rate.
  */
 export function coolDown(mech) {
-  mech.heat = Math.max(0, mech.heat - 25);
+  const coolAmount = Math.ceil(mech.maxHeat * 0.25);
+  mech.heat = Math.max(0, mech.heat - coolAmount);
   if (mech.heat < mech.maxHeat) {
     mech.overheated = false;
   }

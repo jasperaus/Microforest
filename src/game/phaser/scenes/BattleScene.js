@@ -1,6 +1,6 @@
 import {
   TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y,
-  TILE_GRASS, TILE_WALL, TILE_WATER,
+  TILE_GRASS, TILE_WALL, TILE_WATER, TILE_OBJECTIVE,
   HIGHLIGHT_MOVE, HIGHLIGHT_ATTACK, HIGHLIGHT_SELECT, HIGHLIGHT_SPECIAL,
   PHASE,
 } from '../../config.js';
@@ -91,7 +91,7 @@ export default class BattleScene extends Phaser.Scene {
         this.grid[row][col] = {
           row, col, type,
           x, y,
-          walkable: type === TILE_GRASS || type === 3,
+          walkable: type === TILE_GRASS || type === TILE_OBJECTIVE,
           mech: null,
           sprite,
           border,
@@ -126,14 +126,19 @@ export default class BattleScene extends Phaser.Scene {
     const mechLookup = {};
     mechsData.forEach(m => { mechLookup[m.id] = m; });
 
-    // Determine which player mechs to deploy
+    // Build the list of spawns to deploy.
+    // selectedMechIds are the mech IDs the player picked; we pair them with
+    // sequential spawn positions from the mission (ignoring the mission's preset mechId).
     const spawns = this.mission.playerSpawns;
-    const toSpawn = this.selectedMechIds
-      ? spawns.filter(s => this.selectedMechIds.includes(s.mechId)).slice(0, spawns.length)
-      : spawns;
-
-    // Fallback: use all spawns if none selected
-    const finalSpawns = (toSpawn.length === 0) ? spawns : toSpawn;
+    let finalSpawns;
+    if (this.selectedMechIds && this.selectedMechIds.length > 0) {
+      // Map selected mechs to spawn positions in order
+      finalSpawns = this.selectedMechIds
+        .slice(0, spawns.length)
+        .map((mechId, i) => ({ ...spawns[i], mechId }));
+    } else {
+      finalSpawns = spawns;
+    }
 
     finalSpawns.forEach(spawn => {
       const data = mechLookup[spawn.mechId];
