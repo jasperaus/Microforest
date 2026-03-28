@@ -1,0 +1,172 @@
+[
+  {
+    "id": "mission_1",
+    "name": "First Contact",
+    "subtitle": "Defend the Colony",
+    "story": "Rogue drones have breached the outer perimeter! Iron Cadets, scramble your mechs and hold the line. Take down the enemy units before they reach the colony core.",
+    "objective": "Destroy all enemy units",
+    "winCondition": "eliminate_all",
+    "cols": 12,
+    "rows": 8,
+    "map": [
+      [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0]
+    ],
+    "playerSpawns": [
+      { "row": 3, "col": 0, "mechId": "zip" },
+      { "row": 4, "col": 0, "mechId": "rex" }
+    ],
+    "enemySpawns": [
+      { "row": 3, "col": 11, "mechId": "drone_alpha" },
+      { "row": 4, "col": 11, "mechId": "drone_heavy" }
+    ],
+    "rewardCredits": 200,
+    "unlocks": "rex"
+  },
+  {
+    "id": "mission_2",
+    "name": "Hold the Gate",
+    "subtitle": "Reinforcements Incoming",
+    "story": "More drones! Hold your position while the colony evacuates. New intel: Bolt, our long-range specialist, is joining the squad.",
+    "objective": "Survive 5 rounds OR destroy all enemies",
+    "winCondition": "survive_or_eliminate",
+    "survivalRounds": 5,
+    "cols": 12,
+    "rows": 8,
+    "map": [
+      [0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0],
+      [0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+      [0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0]
+    ],
+    "playerSpawns": [
+      { "row": 3, "col": 0, "mechId": "zip" },
+      { "row": 4, "col": 0, "mechId": "rex" },
+      { "row": 3, "col": 1, "mechId": "bolt" }
+    ],
+    "enemySpawns": [
+      { "row": 2, "col": 11, "mechId": "drone_alpha" },
+      { "row": 3, "col": 11, "mechId": "drone_heavy" },
+      { "row": 4, "col": 11, "mechId": "drone_alpha" },
+      { "row": 5, "col": 11, "mechId": "drone_heavy" }
+    ],
+    "rewardCredits": 350,
+    "unlocks": "bolt"
+  },
+  {
+    "id": "mission_3",
+    "name": "Deep Strike",
+    "subtitle": "Take the Fight to Them",
+    "story": "We're going on the offensive! Intel has located the drone command centre. Push through their defences and destroy it. Nova is ready to join — her repair systems will be vital.",
+    "objective": "Destroy all enemy units",
+    "winCondition": "eliminate_all",
+    "cols": 12,
+    "rows": 8,
+    "map": [
+      [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+      [0, 1, 0, 2, 2, 0, 0, 2, 2, 0, 1, 0],
+      [0, 1, 0, 2, 2, 0, 0, 2, 2, 0, 1, 0],
+      [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+    ],
+    "playerSpawns": [
+      { "row": 3, "col": 0, "mechId": "zip" },
+      { "row": 4, "col": 0, "mechId": "rex" },
+      { "row": 3, "col": 1, "mechId": "nova" }
+    ],
+    "enemySpawns": [
+      { "row": 1, "col": 10, "mechId": "drone_alpha" },
+      { "row": 3, "col": 11, "mechId": "drone_heavy" },
+      { "row": 4, "col": 11, "mechId": "drone_heavy" },
+      { "row": 6, "col": 10, "mechId": "drone_alpha" }
+    ],
+    "rewardCredits": 500,
+    "unlocks": "nova"
+  },
+  {
+    "id": "mission_4",
+    "name": "Urban Warfare",
+    "subtitle": "City Block Clearance",
+    "story": "The drones have taken over the city! Fight through narrow streets and use cover wisely. Vex joins the team — the Missile Barrage will be perfect for clearing groups.",
+    "objective": "Destroy all enemy units",
+    "winCondition": "eliminate_all",
+    "cols": 12,
+    "rows": 8,
+    "map": [
+      [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+      [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+      [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]
+    ],
+    "playerSpawns": [
+      { "row": 2, "col": 0, "mechId": "zip" },
+      { "row": 3, "col": 0, "mechId": "rex" },
+      { "row": 4, "col": 0, "mechId": "vex" },
+      { "row": 5, "col": 0, "mechId": "nova" }
+    ],
+    "enemySpawns": [
+      { "row": 0, "col": 10, "mechId": "drone_alpha" },
+      { "row": 2, "col": 11, "mechId": "drone_heavy" },
+      { "row": 3, "col": 10, "mechId": "drone_alpha" },
+      { "row": 4, "col": 10, "mechId": "drone_alpha" },
+      { "row": 5, "col": 11, "mechId": "drone_heavy" },
+      { "row": 7, "col": 10, "mechId": "drone_alpha" }
+    ],
+    "rewardCredits": 700,
+    "unlocks": "vex"
+  },
+  {
+    "id": "mission_5",
+    "name": "The Final Stand",
+    "subtitle": "Stop the Mothership",
+    "story": "The drone mothership has landed! All five Iron Cadets are deployed for the final battle. Destroy the mothership's core and end the invasion once and for all. Good luck, Cadets!",
+    "objective": "Destroy the Mothership (boss unit)",
+    "winCondition": "eliminate_all",
+    "cols": 12,
+    "rows": 8,
+    "map": [
+      [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2],
+      [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0]
+    ],
+    "playerSpawns": [
+      { "row": 2, "col": 0, "mechId": "zip" },
+      { "row": 3, "col": 0, "mechId": "rex" },
+      { "row": 4, "col": 0, "mechId": "vex" },
+      { "row": 5, "col": 0, "mechId": "nova" },
+      { "row": 6, "col": 1, "mechId": "bolt" }
+    ],
+    "enemySpawns": [
+      { "row": 1, "col": 10, "mechId": "drone_alpha" },
+      { "row": 2, "col": 11, "mechId": "drone_heavy" },
+      { "row": 3, "col": 11, "mechId": "drone_heavy" },
+      { "row": 4, "col": 11, "mechId": "drone_heavy" },
+      { "row": 5, "col": 11, "mechId": "drone_heavy" },
+      { "row": 6, "col": 10, "mechId": "drone_alpha" }
+    ],
+    "rewardCredits": 1000,
+    "unlocks": null
+  }
+]
