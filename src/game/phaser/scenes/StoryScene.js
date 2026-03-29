@@ -82,12 +82,29 @@ export default class StoryScene extends Phaser.Scene {
       color: '#557799',
     }).setOrigin(0.5).setAlpha(0);
 
-    // Skip hint
-    this.add.text(CANVAS_WIDTH - 18, CANVAS_HEIGHT - 18, 'ESC: SKIP ALL', {
-      fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#334455',
-    }).setOrigin(1, 1);
+    // Visible interactive skip button
+    const skipBtnBg = this.add.rectangle(
+      CANVAS_WIDTH - 56, CANVAS_HEIGHT - 22,
+      90, 24, 0x112233, 0.92
+    ).setStrokeStyle(1, 0x334455, 1)
+     .setInteractive({ useHandCursor: true })
+     .setDepth(200);
+
+    const skipBtnTxt = this.add.text(
+      CANVAS_WIDTH - 56, CANVAS_HEIGHT - 22,
+      '[ SKIP ALL ]',
+      { fontSize: '11px', fontFamily: 'monospace', color: '#556677' }
+    ).setOrigin(0.5).setDepth(201);
+
+    skipBtnBg.on('pointerover', () => {
+      skipBtnBg.setFillStyle(0x1a3344, 0.95);
+      skipBtnTxt.setColor('#88aacc');
+    });
+    skipBtnBg.on('pointerout', () => {
+      skipBtnBg.setFillStyle(0x112233, 0.92);
+      skipBtnTxt.setColor('#556677');
+    });
+    skipBtnBg.on('pointerdown', () => this._skip());
 
     // Black fade overlay
     this._fadeRect = this.add.rectangle(

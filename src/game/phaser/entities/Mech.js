@@ -124,24 +124,37 @@ export default class Mech extends Phaser.GameObjects.Container {
     g.clear();
     g.fillStyle(0xffcc44, 0.85);
 
-    // Draw a small solid triangle pointing in the facing direction
-    // positioned just outside the sprite bounds
-    const sz = 7;
-    const base = 30; // distance from center to base of triangle
-    switch (facing) {
-      case 'N':
-        g.fillTriangle(0, -(base + sz), -sz, -base, sz, -base);
-        break;
-      case 'S':
-        g.fillTriangle(0, base + sz, -sz, base, sz, base);
-        break;
-      case 'E':
-        g.fillTriangle(base + sz, 0, base, -sz, base, sz);
-        break;
-      case 'W':
-        g.fillTriangle(-(base + sz), 0, -base, -sz, -base, sz);
-        break;
-    }
+    // Screen-space angles (clockwise from east, y-down) for each hex direction.
+    const ANGLES = {
+      'E':  0,
+      'SE': Math.PI / 3,
+      'SW': 2 * Math.PI / 3,
+      'W':  Math.PI,
+      'NW': 4 * Math.PI / 3,
+      'NE': 5 * Math.PI / 3,
+      // Cardinal fallbacks kept for compatibility
+      'N':  3 * Math.PI / 2,
+      'S':  Math.PI / 2,
+    };
+
+    const angle    = ANGLES[facing] ?? 0;
+    const tipDist  = 34;  // distance from centre to triangle tip
+    const baseDist = 28;  // distance from centre to triangle base
+    const halfBase = 6;   // half-width of triangle base
+
+    const tipX = tipDist * Math.cos(angle);
+    const tipY = tipDist * Math.sin(angle);
+
+    // Perpendicular unit vector
+    const perpX = -Math.sin(angle);
+    const perpY =  Math.cos(angle);
+
+    const b1x = baseDist * Math.cos(angle) + halfBase * perpX;
+    const b1y = baseDist * Math.sin(angle) + halfBase * perpY;
+    const b2x = baseDist * Math.cos(angle) - halfBase * perpX;
+    const b2y = baseDist * Math.sin(angle) - halfBase * perpY;
+
+    g.fillTriangle(tipX, tipY, b1x, b1y, b2x, b2y);
   }
 
   setDimmed(dimmed) {

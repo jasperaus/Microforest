@@ -1,5 +1,5 @@
 import { TILE_WALL } from '../../config.js';
-import { manhattanDistance, hasLineOfSight } from './PathFinder.js';
+import { hexDistance, hasLineOfSight } from './PathFinder.js';
 
 /**
  * Resolve an attack from attacker to target using the given weapon.
@@ -14,7 +14,7 @@ export function resolveAttack(attacker, target, weapon, options = {}) {
   const { calledShot = false, flanking = false, grid = null } = options;
 
   // Range check
-  const dist = manhattanDistance(attacker.row, attacker.col, target.row, target.col);
+  const dist = hexDistance(attacker.row, attacker.col, target.row, target.col);
   if (dist > weapon.range) {
     return { hit: false, damage: 0, heatGain: 0, isCrit: false, logMessage: 'Out of range!' };
   }
@@ -70,22 +70,29 @@ export function resolveAttack(attacker, target, weapon, options = {}) {
   };
 }
 
+// Facing vectors (row, col) for dot-product flanking check.
+// Positive row = south (down), positive col = east (right).
+const FACING_VECTORS = {
+  'E':  [0,  1],
+  'W':  [0, -1],
+  'NE': [-1, 1],
+  'NW': [-1,-1],
+  'SE': [ 1, 1],
+  'SW': [ 1,-1],
+};
+
 /**
  * Determine if the attacker is flanking the target.
- * Uses the target's explicit `facing` property if set,
- * otherwise falls back to team-based assumption.
- *
- * Flanking = attacking from behind (opposite of where target faces).
+ * Uses a dot-product test: if the attacker is on the opposite side from the
+ * target's facing direction, the dot product of (facing vector) · (target→attacker)
+ * is negative — i.e. the attacker is behind the target.
  */
 export function isFlanking(attacker, target) {
   const facing = target.facing || (target.team === 'player' ? 'E' : 'W');
-  switch (facing) {
-    case 'E': return attacker.col < target.col;  // behind an east-facing mech = from west
-    case 'W': return attacker.col > target.col;  // behind a west-facing mech = from east
-    case 'N': return attacker.row > target.row;  // behind a north-facing mech = from south
-    case 'S': return attacker.row < target.row;  // behind a south-facing mech = from north
-    default:  return false;
-  }
+  const fv = FACING_VECTORS[facing] ?? [0, 1];
+  const dr = attacker.row - target.row;
+  const dc = attacker.col - target.col;
+  return (fv[0] * dr + fv[1] * dc) < 0;
 }
 
 /**

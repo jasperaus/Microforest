@@ -103,7 +103,7 @@ export default class TurnManager {
 
     // Animate movement
     await mech.moveTo(
-      this.scene.tileX(targetCol),
+      this.scene.tileX(targetCol, targetRow),
       this.scene.tileY(targetRow)
     );
 
@@ -221,7 +221,7 @@ export default class TurnManager {
         target.row = nr;
         target.col = nc;
         this.scene.grid[nr][nc].mech = target;
-        await target.moveTo(this.scene.tileX(nc), this.scene.tileY(nr));
+        await target.moveTo(this.scene.tileX(nc, nr), this.scene.tileY(nr));
       }
       EventBridge.emit('log', `${attacker.name} bashes ${target.name} back!`);
     }

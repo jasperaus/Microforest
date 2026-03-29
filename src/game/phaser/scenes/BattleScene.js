@@ -68,7 +68,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // ── Grid wrappers (delegate to GridManager) ───────────────────────────────
 
-  tileX(col) { return this.gridManager.tileX(col); }
+  tileX(col, row = 0) { return this.gridManager.tileX(col, row); }
   tileY(row) { return this.gridManager.tileY(row); }
   pixelToGrid(px, py) { return this.gridManager.pixelToGrid(px, py); }
   isValidTile(row, col) { return this.gridManager.isValidTile(row, col); }
@@ -99,7 +99,7 @@ export default class BattleScene extends Phaser.Scene {
       if (!data) return;
       const targetY = this.tileY(spawn.row);
       const mech = new Mech(this,
-        this.tileX(spawn.col),
+        this.tileX(spawn.col, spawn.row),
         targetY - 60,
         { ...data, row: spawn.row, col: spawn.col }
       );
@@ -120,7 +120,7 @@ export default class BattleScene extends Phaser.Scene {
       const data = mechLookup[spawn.mechId];
       if (!data) return;
       const mech = new Mech(this,
-        this.tileX(spawn.col),
+        this.tileX(spawn.col, spawn.row),
         this.tileY(spawn.row),
         { ...data, row: spawn.row, col: spawn.col, team: 'enemy' }
       );

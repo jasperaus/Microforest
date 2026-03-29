@@ -229,362 +229,483 @@ export default class BootScene extends Phaser.Scene {
   // ── Zip: Scout — slim, fast, antenna, cyan ────────────────────────────────
   _makeZip() {
     this._makeMech('mech_zip', (g, S) => {
-      const c = 0x00ccbb;
+      const c     = 0x00ccbb;
       const armor = 0x667788;
-      const joint = 0x334455;
-      const d = 5; // iso depth
+      const joint = 0x2a3d50;
+      const white = 0xd0dce8;
+      const d = 5;
 
-      // Legs (thin, fast-looking)
-      isoBox(g, 30, 68, 10, 18, d, joint);
-      isoBox(g, 52, 68, 10, 18, d, joint);
+      // Legs
+      isoBox(g, 30, 68, 10, 20, d, joint);
+      isoBox(g, 52, 68, 10, 20, d, joint);
+      // White knee caps
+      isoBox(g, 30, 72, 10, 7, 3, white);
+      isoBox(g, 52, 72, 10, 7, 3, white);
       // Feet
-      isoBox(g, 27, 84, 14, 6, d, armor);
-      isoBox(g, 49, 84, 14, 6, d, armor);
+      isoBox(g, 26, 86, 16, 6, d, armor);
+      isoBox(g, 50, 86, 16, 6, d, armor);
 
       // Torso (slim)
       isoBox(g, 28, 40, 36, 30, d, c);
+      // White chest plate
+      g.fillStyle(white, 0.18);
+      g.fillRect(30, 42, 32, 26);
       panelLine(g, 30, 50, 32, c);
-      panelLine(g, 30, 58, 32, c);
+      panelLine(g, 30, 60, 32, c);
 
-      // Shoulder pads (small, aerodynamic)
-      isoBox(g, 18, 40, 12, 14, d, armor);
-      isoBox(g, 62, 40, 12, 14, d, armor);
+      // Shoulder pads with white accent strip
+      isoBox(g, 16, 38, 14, 16, d, armor);
+      isoBox(g, 62, 38, 14, 16, d, armor);
+      g.fillStyle(white, 0.55);
+      g.fillRect(17, 39, 12, 4);
+      g.fillRect(63, 39, 12, 4);
 
       // Arms
-      isoBox(g, 20, 52, 8, 16, 3, joint);
-      isoBox(g, 64, 52, 8, 16, 3, joint);
+      isoBox(g, 18, 52, 9, 18, 3, joint);
+      isoBox(g, 65, 52, 9, 18, 3, joint);
 
       // Head (sleek)
-      isoBox(g, 34, 24, 24, 18, d, c);
-      // Visor (wide cyan)
+      isoBox(g, 33, 22, 26, 20, d, c);
+      // White forehead panel
+      g.fillStyle(white, 0.3);
+      g.fillRect(35, 22, 22, 6);
+      // Visor (wide cyan glow)
       glow(g, 37, 30, 18, 5, 0x00ffee);
+      // Chin detail
+      g.fillStyle(armor, 1);
+      g.fillRect(36, 40, 20, 3);
 
       // Antenna
       g.fillStyle(armor);
-      g.fillRect(45, 10, 2, 16);
-      glowCircle(g, 46, 9, 3, 0xffffff);
+      g.fillRect(44, 8, 2, 16);
+      glowCircle(g, 45, 7, 3, 0xffffff);
 
-      // Chest power indicator
-      glow(g, 42, 46, 8, 4, 0x00ffcc);
+      // Chest power core
+      glow(g, 42, 46, 8, 5, 0x00ffcc);
 
       // Rivets
-      rivet(g, 22, 44, armor);
-      rivet(g, 70, 44, armor);
+      rivet(g, 20, 42, armor); rivet(g, 72, 42, armor);
+      rivet(g, 20, 52, armor); rivet(g, 72, 52, armor);
     });
   }
 
   // ── Rex: Brawler — wide, heavy, orange ────────────────────────────────────
   _makeRex() {
     this._makeMech('mech_rex', (g, S) => {
-      const c = 0xcc7700;
+      const c     = 0xcc7700;
       const armor = 0x778088;
-      const joint = 0x3a3a40;
+      const joint = 0x2e2e34;
+      const white = 0xccd4dc;
       const d = 6;
 
       // Legs (thick)
-      isoBox(g, 26, 64, 16, 20, d, joint);
-      isoBox(g, 50, 64, 16, 20, d, joint);
-      // Armoured shin guards
-      isoBox(g, 24, 70, 8, 12, 3, armor);
-      isoBox(g, 60, 70, 8, 12, 3, armor);
+      isoBox(g, 25, 62, 18, 22, d, joint);
+      isoBox(g, 50, 62, 18, 22, d, joint);
+      // White shin guards
+      isoBox(g, 25, 70, 10, 13, 3, white);
+      isoBox(g, 58, 70, 10, 13, 3, white);
       // Feet (wide)
-      isoBox(g, 22, 82, 22, 8, d, armor);
-      isoBox(g, 48, 82, 22, 8, d, armor);
+      isoBox(g, 21, 82, 24, 8, d, armor);
+      isoBox(g, 47, 82, 24, 8, d, armor);
 
       // Torso (massive)
-      isoBox(g, 22, 34, 48, 32, d, c);
-      panelLine(g, 26, 44, 42, c);
-      panelLine(g, 26, 52, 42, c);
-      panelLine(g, 26, 58, 42, c);
-      // Chest emblem (red insignia)
-      g.fillStyle(0xff2200, 0.8);
-      g.fillRect(40, 38, 12, 8);
-      g.fillStyle(0xff4422);
+      isoBox(g, 21, 32, 50, 32, d, c);
+      // White shoulder-line accent
+      g.fillStyle(white, 0.22);
+      g.fillRect(23, 32, 46, 8);
+      panelLine(g, 25, 44, 44, c);
+      panelLine(g, 25, 52, 44, c);
+      panelLine(g, 25, 60, 44, c);
+      // Chest diamond emblem
+      g.fillStyle(0xff2200, 0.9);
       g.fillPoints([
-        { x: 46, y: 37 }, { x: 50, y: 42 }, { x: 46, y: 46 }, { x: 42, y: 42 },
+        { x: 46, y: 36 }, { x: 52, y: 42 }, { x: 46, y: 48 }, { x: 40, y: 42 },
+      ], true);
+      g.fillStyle(0xff7744, 0.8);
+      g.fillPoints([
+        { x: 46, y: 39 }, { x: 49, y: 42 }, { x: 46, y: 45 }, { x: 43, y: 42 },
       ], true);
 
-      // Shoulder pads (huge, blocky)
-      isoBox(g, 8, 32, 18, 18, d, armor);
-      isoBox(g, 66, 32, 18, 18, d, armor);
-      rivet(g, 12, 36, armor); rivet(g, 22, 36, armor);
-      rivet(g, 70, 36, armor); rivet(g, 80, 36, armor);
-      rivet(g, 12, 46, armor); rivet(g, 22, 46, armor);
-      rivet(g, 70, 46, armor); rivet(g, 80, 46, armor);
+      // Shoulder pads (huge, blocky) with white panels
+      isoBox(g, 6, 30, 20, 20, d, armor);
+      isoBox(g, 66, 30, 20, 20, d, armor);
+      g.fillStyle(white, 0.2);
+      g.fillRect(8, 31, 18, 6);
+      g.fillRect(67, 31, 18, 6);
+      rivet(g, 10, 36, armor); rivet(g, 22, 36, armor);
+      rivet(g, 70, 36, armor); rivet(g, 82, 36, armor);
+      rivet(g, 10, 46, armor); rivet(g, 22, 46, armor);
+      rivet(g, 70, 46, armor); rivet(g, 82, 46, armor);
 
-      // Fists (large)
-      isoBox(g, 10, 50, 12, 14, 4, joint);
-      isoBox(g, 70, 50, 12, 14, 4, joint);
-      glow(g, 12, 54, 8, 4, 0x44aaff);
-      glow(g, 72, 54, 8, 4, 0x44aaff);
+      // Fists
+      isoBox(g, 8, 50, 13, 14, 4, joint);
+      isoBox(g, 71, 50, 13, 14, 4, joint);
+      glow(g, 10, 56, 8, 4, 0x44aaff);
+      glow(g, 73, 56, 8, 4, 0x44aaff);
 
-      // Head (squat, armoured)
-      isoBox(g, 30, 18, 32, 18, d, armor);
-      // Visor (narrow angry slit)
-      glow(g, 34, 26, 24, 4, 0xff6600);
+      // Head (squat, armoured) with white brow plate
+      isoBox(g, 28, 16, 36, 18, d, armor);
+      g.fillStyle(white, 0.28);
+      g.fillRect(30, 17, 32, 5);
+      // Visor (angry slit)
+      glow(g, 32, 26, 28, 5, 0xff6600);
 
       // Missile pod on left shoulder
-      g.fillStyle(0x444444);
-      g.fillRect(10, 33, 4, 3); g.fillRect(10, 37, 4, 3); g.fillRect(10, 41, 4, 3);
-      g.fillStyle(0xff2200, 0.6);
-      g.fillCircle(12, 34, 1); g.fillCircle(12, 38, 1); g.fillCircle(12, 42, 1);
+      g.fillStyle(0x222222);
+      for (let i = 0; i < 3; i++) {
+        g.fillRect(8, 32 + i * 5, 5, 3);
+        g.fillStyle(0xff3300, 0.7);
+        g.fillCircle(10, 33 + i * 5, 1.5);
+        g.fillStyle(0x222222);
+      }
     });
   }
 
   // ── Bolt: Sniper — tall, one big cannon arm, green ────────────────────────
   _makeBolt() {
     this._makeMech('mech_bolt', (g, S) => {
-      const c = 0x22aa44;
-      const armor = 0x556a5a;
-      const joint = 0x2a3a30;
+      const c     = 0x22aa44;
+      const armor = 0x4a6055;
+      const joint = 0x1e2e26;
+      const white = 0xc8dcd2;
       const d = 5;
 
-      // Legs (thin, bipod stance)
-      isoBox(g, 32, 66, 10, 20, d, joint);
-      isoBox(g, 54, 66, 10, 20, d, joint);
-      // Stabiliser feet
-      isoBox(g, 28, 84, 16, 6, d, armor);
-      isoBox(g, 50, 84, 16, 6, d, armor);
-      g.fillStyle(0x00ddaa, 0.4);
-      g.fillRect(30, 87, 4, 2); g.fillRect(52, 87, 4, 2);
+      // Legs (thin, precise)
+      isoBox(g, 32, 66, 10, 22, d, joint);
+      isoBox(g, 54, 66, 10, 22, d, joint);
+      // Stabiliser feet with accent
+      isoBox(g, 28, 86, 17, 6, d, armor);
+      isoBox(g, 50, 86, 17, 6, d, armor);
+      g.fillStyle(white, 0.4);
+      g.fillRect(29, 86, 15, 3);
+      g.fillRect(51, 86, 15, 3);
 
       // Torso (slim, tall)
-      isoBox(g, 30, 36, 32, 32, d, c);
+      isoBox(g, 30, 34, 32, 34, d, c);
+      g.fillStyle(white, 0.2);
+      g.fillRect(32, 34, 28, 7);
       panelLine(g, 32, 46, 28, c);
-      panelLine(g, 32, 54, 28, c);
+      panelLine(g, 32, 56, 28, c);
 
-      // LEFT: Big cannon arm
-      isoBox(g, 8, 36, 22, 12, d, armor);
-      // Barrel
-      g.fillStyle(0x2a3a30);
-      g.fillRect(2, 40, 24, 6);
+      // LEFT: Big cannon housing + barrel
+      isoBox(g, 6, 34, 24, 14, d, armor);
+      g.fillStyle(white, 0.2);
+      g.fillRect(8, 34, 22, 5);
       g.fillStyle(0x1a2a20);
-      g.fillRect(0, 41, 6, 4);
-      // Muzzle glow
-      glow(g, 0, 42, 4, 2, 0x00ff66);
+      g.fillRect(0, 38, 28, 7);
+      g.fillStyle(0x111a16);
+      g.fillRect(0, 40, 7, 3);
+      glow(g, 0, 40, 5, 3, 0x00ff66);
+      // Heat vents on cannon
+      g.fillStyle(white, 0.35);
+      for (let i = 0; i < 4; i++) g.fillRect(12 + i * 4, 44, 2, 4);
 
-      // RIGHT: Normal arm
-      isoBox(g, 62, 42, 12, 14, 4, joint);
+      // RIGHT: Support arm
+      isoBox(g, 62, 42, 12, 16, 4, joint);
+      g.fillStyle(white, 0.18);
+      g.fillRect(63, 43, 10, 4);
 
-      // Shoulder pad (cannon side wider)
-      isoBox(g, 10, 30, 20, 8, d, armor);
-      rivet(g, 14, 33, armor); rivet(g, 26, 33, armor);
+      // Shoulder pads
+      isoBox(g, 8, 28, 22, 9, d, armor);
+      g.fillStyle(white, 0.25);
+      g.fillRect(10, 28, 20, 4);
+      rivet(g, 13, 33, armor); rivet(g, 27, 33, armor);
+      isoBox(g, 62, 36, 14, 8, d, armor);
 
-      // Head (tall with scope)
-      isoBox(g, 34, 16, 24, 22, d, c);
-      // Scope extends right
-      isoBox(g, 56, 18, 16, 8, 3, armor);
-      glow(g, 60, 20, 10, 4, 0x00ffaa);
+      // Head (tall, precision)
+      isoBox(g, 34, 14, 25, 22, d, c);
+      g.fillStyle(white, 0.28);
+      g.fillRect(36, 14, 22, 6);
+      // Side scope housing
+      isoBox(g, 57, 16, 17, 9, 3, armor);
+      g.fillStyle(white, 0.2);
+      g.fillRect(59, 16, 14, 4);
+      glow(g, 60, 19, 12, 4, 0x00ffaa);
       // Main visor
-      glow(g, 38, 24, 16, 6, 0x00ff66);
+      glow(g, 38, 25, 17, 6, 0x00ff66);
 
       // Chest scanner
-      glow(g, 42, 40, 6, 4, 0x00ddaa);
+      glow(g, 41, 40, 8, 5, 0x00ddaa);
     });
   }
 
   // ── Nova: Support — round, medical cross, gold ────────────────────────────
   _makeNova() {
     this._makeMech('mech_nova', (g, S) => {
-      const c = 0xccaa00;
-      const armor = 0x8a8060;
-      const joint = 0x4a4a38;
+      const c     = 0xccaa00;
+      const armor = 0x7a7050;
+      const joint = 0x3c3c2c;
+      const white = 0xe8e0c8;
       const d = 5;
 
       // Legs (medium)
-      isoBox(g, 30, 66, 12, 18, d, joint);
-      isoBox(g, 52, 66, 12, 18, d, joint);
+      isoBox(g, 30, 64, 12, 22, d, joint);
+      isoBox(g, 52, 64, 12, 22, d, joint);
+      // White knee caps
+      isoBox(g, 30, 68, 12, 7, 3, white);
+      isoBox(g, 52, 68, 12, 7, 3, white);
       // Rounded feet
-      isoBox(g, 28, 82, 16, 8, d, armor);
-      isoBox(g, 50, 82, 16, 8, d, armor);
+      isoBox(g, 27, 84, 17, 8, d, armor);
+      isoBox(g, 49, 84, 17, 8, d, armor);
 
-      // Torso (rounded / boxy)
-      isoBox(g, 24, 36, 44, 32, d, c);
-      // Medical cross on chest
-      g.fillStyle(0xffffff, 0.85);
-      g.fillRect(42, 40, 8, 22);
-      g.fillRect(36, 46, 20, 8);
-      // Cross outline
-      g.fillStyle(0xdd0000, 0.6);
-      g.fillRect(43, 41, 6, 20);
-      g.fillRect(37, 47, 18, 6);
+      // Torso (wide, boxy)
+      isoBox(g, 22, 34, 48, 32, d, c);
+      // White top accent
+      g.fillStyle(white, 0.22);
+      g.fillRect(24, 34, 44, 7);
+      // Medical cross (bright white with red fill)
+      g.fillStyle(0xffffff, 0.95);
+      g.fillRect(42, 39, 9, 24);
+      g.fillRect(35, 46, 23, 9);
+      g.fillStyle(0xdd1111, 0.8);
+      g.fillRect(43, 40, 7, 22);
+      g.fillRect(36, 47, 21, 7);
+      g.fillStyle(0xff4444, 0.5);
+      g.fillRect(44, 41, 5, 20);
+      g.fillRect(37, 48, 19, 5);
 
-      // Shoulder pads (round)
-      isoBox(g, 14, 38, 12, 14, d, armor);
-      isoBox(g, 66, 38, 12, 14, d, armor);
+      // Shoulder pads with white accent
+      isoBox(g, 12, 36, 14, 16, d, armor);
+      isoBox(g, 66, 36, 14, 16, d, armor);
+      g.fillStyle(white, 0.28);
+      g.fillRect(13, 37, 12, 5);
+      g.fillRect(67, 37, 12, 5);
 
       // Arms (repair tools)
-      isoBox(g, 16, 50, 10, 14, 3, joint);
-      isoBox(g, 68, 50, 10, 14, 3, joint);
-      // Tool tips glow
-      glow(g, 18, 62, 6, 3, 0x44ffaa);
-      glow(g, 70, 62, 6, 3, 0x44ffaa);
+      isoBox(g, 14, 50, 11, 16, 3, joint);
+      isoBox(g, 67, 50, 11, 16, 3, joint);
+      glow(g, 16, 64, 7, 4, 0x44ffaa);
+      glow(g, 69, 64, 7, 4, 0x44ffaa);
 
-      // Head (round, friendly)
-      isoBox(g, 32, 18, 28, 20, d, c);
-      // Eyes (round, blue)
-      glowCircle(g, 40, 28, 4, 0x44aaff);
-      glowCircle(g, 54, 28, 4, 0x44aaff);
+      // Head (round, friendly) with white brow
+      isoBox(g, 30, 16, 32, 20, d, c);
+      g.fillStyle(white, 0.3);
+      g.fillRect(32, 16, 28, 6);
+      // Eyes (dual blue sensors)
+      glowCircle(g, 40, 27, 5, 0x44aaff);
+      glowCircle(g, 54, 27, 5, 0x44aaff);
+      // Chin vent
+      g.fillStyle(armor, 1);
+      g.fillRect(36, 34, 20, 3);
 
-      // Antenna (small)
+      // Antenna with glow
       g.fillStyle(armor);
-      g.fillRect(45, 10, 2, 10);
-      g.fillStyle(0x44ff88);
-      g.fillCircle(46, 9, 2);
+      g.fillRect(44, 8, 2, 10);
+      glowCircle(g, 45, 7, 3, 0x44ff88);
     });
   }
 
   // ── Vex: Assault — massive, shoulder rockets, red ─────────────────────────
   _makeVex() {
     this._makeMech('mech_vex', (g, S) => {
-      const c = 0xcc1122;
-      const armor = 0x6a6070;
-      const joint = 0x3a2a30;
+      const c     = 0xcc1122;
+      const armor = 0x5c5460;
+      const joint = 0x281820;
+      const white = 0xd0c8d4;
       const d = 6;
 
-      // Legs (very thick)
-      isoBox(g, 24, 62, 18, 22, d, joint);
-      isoBox(g, 52, 62, 18, 22, d, joint);
-      // Armoured knee guards
-      isoBox(g, 22, 66, 8, 10, 3, armor);
-      isoBox(g, 64, 66, 8, 10, 3, armor);
+      // Legs (very thick, imposing)
+      isoBox(g, 22, 60, 20, 24, d, joint);
+      isoBox(g, 52, 60, 20, 24, d, joint);
+      // White knee guards
+      isoBox(g, 22, 64, 12, 11, 3, white);
+      isoBox(g, 60, 64, 12, 11, 3, white);
       // Heavy feet
-      isoBox(g, 20, 82, 24, 8, d, armor);
-      isoBox(g, 50, 82, 24, 8, d, armor);
-      // Chevron markings on legs
-      g.fillStyle(0x44aaff, 0.5);
-      g.fillRect(28, 76, 10, 2); g.fillRect(30, 78, 8, 2);
-      g.fillRect(56, 76, 10, 2); g.fillRect(58, 78, 8, 2);
+      isoBox(g, 19, 82, 26, 8, d, armor);
+      isoBox(g, 49, 82, 26, 8, d, armor);
+      // Leg chevrons
+      g.fillStyle(0xff8800, 0.6);
+      g.fillRect(26, 74, 12, 2); g.fillRect(28, 77, 10, 2);
+      g.fillRect(56, 74, 12, 2); g.fillRect(58, 77, 10, 2);
 
       // Torso (massive)
-      isoBox(g, 20, 32, 54, 32, d, c);
-      panelLine(g, 24, 42, 46, c);
-      panelLine(g, 24, 50, 46, c);
-      panelLine(g, 24, 56, 46, c);
-      rivet(g, 26, 38, c); rivet(g, 68, 38, c);
-      rivet(g, 26, 48, c); rivet(g, 68, 48, c);
+      isoBox(g, 19, 30, 56, 32, d, c);
+      g.fillStyle(white, 0.18);
+      g.fillRect(21, 30, 52, 8);
+      panelLine(g, 23, 42, 48, c);
+      panelLine(g, 23, 50, 48, c);
+      panelLine(g, 23, 58, 48, c);
+      rivet(g, 25, 36, c); rivet(g, 69, 36, c);
+      rivet(g, 25, 48, c); rivet(g, 69, 48, c);
 
-      // Shoulder ROCKET PODS
-      isoBox(g, 4, 24, 18, 22, d, armor);
-      isoBox(g, 72, 24, 18, 22, d, armor);
-      // Rocket tube openings
-      g.fillStyle(0x333333);
-      g.fillRect(6, 26, 6, 4); g.fillRect(6, 32, 6, 4); g.fillRect(6, 38, 6, 4);
-      g.fillRect(74, 26, 6, 4); g.fillRect(74, 32, 6, 4); g.fillRect(74, 38, 6, 4);
-      g.fillStyle(0xff3300, 0.5);
-      g.fillCircle(9, 28, 1.5); g.fillCircle(9, 34, 1.5); g.fillCircle(9, 40, 1.5);
-      g.fillCircle(77, 28, 1.5); g.fillCircle(77, 34, 1.5); g.fillCircle(77, 40, 1.5);
+      // Shoulder ROCKET PODS with white face plates
+      isoBox(g, 2, 22, 20, 24, d, armor);
+      isoBox(g, 72, 22, 20, 24, d, armor);
+      g.fillStyle(white, 0.2);
+      g.fillRect(4, 22, 18, 6);
+      g.fillRect(73, 22, 18, 6);
+      // Rocket tubes
+      g.fillStyle(0x1a1a1a);
+      for (let i = 0; i < 3; i++) {
+        g.fillRect(4, 29 + i * 6, 7, 4);
+        g.fillRect(73, 29 + i * 6, 7, 4);
+        g.fillStyle(0xff3300, 0.7);
+        g.fillCircle(7, 31 + i * 6, 2);
+        g.fillCircle(76, 31 + i * 6, 2);
+        g.fillStyle(0x1a1a1a);
+      }
 
-      // Arms (barrel guns)
-      isoBox(g, 6, 46, 12, 16, 4, joint);
-      isoBox(g, 76, 46, 12, 16, 4, joint);
-      glow(g, 8, 60, 8, 3, 0xff4400);
-      glow(g, 78, 60, 8, 3, 0xff4400);
+      // Arms with gun barrels
+      isoBox(g, 4, 44, 14, 18, 4, joint);
+      isoBox(g, 76, 44, 14, 18, 4, joint);
+      g.fillStyle(white, 0.15);
+      g.fillRect(5, 45, 12, 4);
+      g.fillRect(77, 45, 12, 4);
+      glow(g, 6, 60, 9, 4, 0xff4400);
+      glow(g, 79, 60, 9, 4, 0xff4400);
 
-      // Head (command dome, flat)
-      isoBox(g, 28, 16, 38, 18, d, armor);
-      // Visor (angry orange slit)
-      glow(g, 34, 24, 26, 4, 0xff8800);
+      // Head (command dome) with white brow strip
+      isoBox(g, 26, 14, 42, 18, d, armor);
+      g.fillStyle(white, 0.28);
+      g.fillRect(28, 14, 38, 6);
+      // Visor (wide angry slit)
+      glow(g, 32, 24, 30, 5, 0xff8800);
+      // Chin plate
+      g.fillStyle(joint, 1);
+      g.fillRect(30, 30, 34, 3);
 
       // Chest power core
-      glow(g, 44, 44, 6, 6, 0xff2200);
+      glow(g, 43, 44, 8, 8, 0xff2200);
     });
   }
 
   // ── Drone Alpha: fast insectoid, purple ───────────────────────────────────
   _makeDroneAlpha() {
     this._makeMech('mech_drone_alpha', (g, S) => {
-      const c = 0x8822aa;
-      const armor = 0x5a4a6a;
-      const joint = 0x3a2a4a;
+      const c     = 0x8822aa;
+      const armor = 0x4e3e60;
+      const joint = 0x2a1c38;
       const d = 4;
 
-      // Insect legs (3 pairs)
+      // Insect legs (3 pairs, angular)
       g.fillStyle(joint);
-      g.fillRect(14, 56, 16, 3); g.fillRect(62, 56, 16, 3);
-      g.fillRect(10, 66, 16, 3); g.fillRect(66, 66, 16, 3);
-      g.fillRect(16, 76, 12, 3); g.fillRect(64, 76, 12, 3);
-      // Claws
-      g.fillStyle(0xff00ff, 0.4);
-      g.fillCircle(12, 77, 2); g.fillCircle(80, 77, 2);
+      g.fillRect(12, 54, 18, 3); g.fillRect(64, 54, 18, 3);
+      g.fillRect(8, 65, 16, 3);  g.fillRect(70, 65, 16, 3);
+      g.fillRect(14, 76, 14, 3); g.fillRect(66, 76, 14, 3);
+      // Claw tips
+      g.fillStyle(0xdd44ff, 0.65);
+      g.fillCircle(10, 77, 3); g.fillCircle(82, 77, 3);
+      g.fillCircle(7, 66, 2);  g.fillCircle(85, 66, 2);
 
       // Thorax
-      isoBox(g, 26, 48, 40, 24, d, c);
-      panelLine(g, 28, 58, 36, c);
-
-      // Wings
-      g.fillStyle(c, 0.35);
+      isoBox(g, 25, 46, 42, 26, d, c);
+      g.fillStyle(0xaa44cc, 0.3);
+      g.fillRect(27, 47, 38, 8);
+      panelLine(g, 27, 58, 38, c);
+      panelLine(g, 27, 64, 38, c);
+      // Thorax energy vents
       for (let i = 0; i < 3; i++) {
-        g.fillRect(14 - i * 2, 38 + i * 4, 20, 6);
-        g.fillRect(60 + i * 2, 38 + i * 4, 20, 6);
+        glow(g, 34 + i * 10, 70, 4, 3, 0xcc00ff);
       }
-      g.fillStyle(0xcc44ff, 0.15);
-      g.fillRect(12, 36, 22, 18);
-      g.fillRect(58, 36, 22, 18);
 
-      // Head
-      isoBox(g, 30, 24, 32, 26, d, c);
+      // Wings (layered, translucent)
+      g.fillStyle(c, 0.22);
+      g.fillRect(4, 34, 24, 22);
+      g.fillRect(66, 34, 24, 22);
+      g.fillStyle(0xdd66ff, 0.15);
+      for (let i = 0; i < 3; i++) {
+        g.fillRect(10 - i * 3, 36 + i * 5, 22, 5);
+        g.fillRect(62 + i * 3, 36 + i * 5, 22, 5);
+      }
+      // Wing edge glow
+      g.fillStyle(0xcc44ff, 0.4);
+      g.fillRect(4, 34, 2, 22);
+      g.fillRect(88, 34, 2, 22);
 
-      // Single glowing eye
-      glowCircle(g, 46, 36, 6, 0xff00ff);
+      // Head (alien, elongated)
+      isoBox(g, 28, 22, 36, 26, d, c);
+      g.fillStyle(0xaa22cc, 0.35);
+      g.fillRect(30, 22, 32, 8);
+
+      // Triple eye sensors
+      glowCircle(g, 38, 32, 4, 0xff00ff);
+      glowCircle(g, 46, 30, 5, 0xff44ff);
+      glowCircle(g, 54, 32, 4, 0xff00ff);
+
+      // Mandibles
+      g.fillStyle(joint);
+      g.fillRect(28, 44, 4, 6);
+      g.fillRect(60, 44, 4, 6);
+      g.fillStyle(0xcc44ff, 0.5);
+      g.fillCircle(30, 50, 2);
+      g.fillCircle(62, 50, 2);
 
       // Antennae
       g.fillStyle(joint);
-      g.fillRect(34, 14, 2, 12);
-      g.fillRect(56, 14, 2, 12);
+      g.fillRect(34, 12, 2, 12);
+      g.fillRect(56, 12, 2, 12);
       g.fillStyle(0xff44ff);
-      g.fillCircle(35, 13, 2);
-      g.fillCircle(57, 13, 2);
+      g.fillCircle(35, 11, 3);
+      g.fillCircle(57, 11, 3);
     });
   }
 
   // ── Drone Heavy: tank with treads, dark red ───────────────────────────────
   _makeDroneHeavy() {
     this._makeMech('mech_drone_heavy', (g, S) => {
-      const c = 0x991111;
-      const armor = 0x6a5a5a;
-      const joint = 0x333333;
+      const c     = 0x991111;
+      const armor = 0x5e5050;
+      const joint = 0x282020;
+      const white = 0xc8bcbc;
       const d = 6;
 
-      // Tread base
-      isoBox(g, 10, 70, 72, 16, d, joint);
-      // Tread wheels
-      g.fillStyle(0x555555);
-      for (let i = 0; i < 7; i++) {
-        g.fillCircle(16 + i * 10, 78, 5);
-        g.fillStyle(0x444444);
-        g.fillCircle(16 + i * 10, 78, 3);
+      // Tread base (wider)
+      isoBox(g, 8, 70, 76, 18, d, joint);
+      // Tread wheels (detailed)
+      for (let i = 0; i < 8; i++) {
+        g.fillStyle(0x484848);
+        g.fillCircle(14 + i * 9, 79, 6);
+        g.fillStyle(0x383838);
+        g.fillCircle(14 + i * 9, 79, 4);
         g.fillStyle(0x555555);
+        g.fillCircle(14 + i * 9, 79, 2);
       }
+      // White tread stripe
+      g.fillStyle(white, 0.15);
+      g.fillRect(9, 70, 74, 4);
 
-      // Heavy body
-      isoBox(g, 14, 34, 64, 38, d, c);
-      panelLine(g, 18, 44, 56, c);
-      panelLine(g, 18, 56, 56, c);
-      panelLine(g, 18, 64, 56, c);
-      rivet(g, 20, 40, c); rivet(g, 72, 40, c);
-      rivet(g, 20, 52, c); rivet(g, 72, 52, c);
+      // Heavy body with white upper accent
+      isoBox(g, 12, 32, 68, 40, d, c);
+      g.fillStyle(white, 0.18);
+      g.fillRect(14, 32, 64, 9);
+      panelLine(g, 16, 44, 60, c);
+      panelLine(g, 16, 56, 60, c);
+      panelLine(g, 16, 64, 60, c);
+      rivet(g, 18, 38, c); rivet(g, 74, 38, c);
+      rivet(g, 18, 52, c); rivet(g, 74, 52, c);
+      rivet(g, 18, 64, c); rivet(g, 74, 64, c);
 
-      // Turret
-      isoBox(g, 24, 18, 44, 20, d, armor);
-      panelLine(g, 28, 28, 36, armor);
+      // Side armour plates (white)
+      isoBox(g, 14, 34, 9, 18, 3, white);
+      isoBox(g, 69, 34, 9, 18, 3, white);
 
-      // Twin cannons (extending left)
-      isoBox(g, 4, 30, 24, 7, 4, joint);
-      isoBox(g, 4, 40, 24, 7, 4, joint);
-      // Muzzles
-      g.fillStyle(0x1a1a1a);
-      g.fillRect(0, 31, 8, 5);
-      g.fillRect(0, 41, 8, 5);
-      glow(g, 1, 32, 3, 3, 0xff4400);
-      glow(g, 1, 42, 3, 3, 0xff4400);
+      // Turret with white brow
+      isoBox(g, 22, 16, 48, 20, d, armor);
+      g.fillStyle(white, 0.22);
+      g.fillRect(24, 16, 44, 6);
+      panelLine(g, 26, 28, 40, armor);
 
-      // Red optics
-      glow(g, 32, 22, 28, 6, 0xff0000);
+      // Twin cannons
+      isoBox(g, 2, 28, 26, 7, 4, joint);
+      isoBox(g, 2, 38, 26, 7, 4, joint);
+      g.fillStyle(white, 0.15);
+      g.fillRect(4, 28, 22, 3);
+      g.fillRect(4, 38, 22, 3);
+      // Muzzle housings
+      g.fillStyle(0x111111);
+      g.fillRect(0, 29, 6, 5);
+      g.fillRect(0, 39, 6, 5);
+      glow(g, 0, 30, 4, 3, 0xff4400);
+      glow(g, 0, 40, 4, 3, 0xff4400);
 
-      // Armour plate reinforcement
-      isoBox(g, 16, 34, 8, 16, 3, armor);
-      isoBox(g, 68, 34, 8, 16, 3, armor);
+      // Wide red optic bar
+      glow(g, 28, 20, 36, 7, 0xff0000);
+      // Optic centre highlight
+      g.fillStyle(0xff8888, 0.4);
+      g.fillRect(40, 21, 12, 5);
+
+      // Command sensor dome (centre turret top)
+      glowCircle(g, 46, 16, 5, 0xff2200);
     });
   }
 

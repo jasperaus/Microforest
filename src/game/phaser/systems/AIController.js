@@ -1,12 +1,12 @@
 import { getFacingFromMovement } from '../../config.js';
-import { findPath, manhattanDistance, hasLineOfSight } from './PathFinder.js';
+import { findPath, hexDistance, hasLineOfSight } from './PathFinder.js';
 import { resolveAttack, isFlanking, applyDamage, applyHeat, coolDown } from './CombatResolver.js';
 import EventBridge from '../EventBridge.js';
 
 const AI_DELAY = 600; // ms between AI actions
 
 /**
- * AIController: drives enemy mech behavior each turn.
+ * AIController: drives enemy mech behaviour each turn.
  * Behavior: move toward nearest player mech, attack if in range + LoS.
  */
 export default class AIController {
@@ -17,7 +17,7 @@ export default class AIController {
   runEnemyTurn(onComplete) {
     const enemies = this.scene.enemyMechs.filter(m => m.alive);
 
-    // Reset AP and cool down
+    // Reset AP and cool down heat
     enemies.forEach(m => {
       m.ap = m.maxAp;
       coolDown(m);
@@ -35,36 +35,31 @@ export default class AIController {
     const enemy = remaining.shift();
     this.scene.time.delayedCall(AI_DELAY, () => {
       const next = () => this._runNextEnemy(remaining, onComplete);
-      // Always advance even if this enemy's turn throws an error
-      this._actEnemy(enemy, next).catch(err => {
-        console.warn('AI action error (continuing):', err);
-        next();
-      });
+      this._actEnemy(enemy, next);
     });
   }
 
   async _actEnemy(enemy, onDone) {
-    if (!enemy.alive) { onDone(); return; }
+    try {
+      if (!enemy.alive) return;
 
-    const players = this.scene.playerMechs.filter(m => m.alive && !m.stealthed);
-    if (players.length === 0) { onDone(); return; }
+      const players = this.scene.playerMechs.filter(m => m.alive && !m.stealthed);
+      if (players.length === 0) return;
 
-    // Find nearest player mech
-    const target = players.reduce((best, p) => {
-      const d = manhattanDistance(enemy.row, enemy.col, p.row, p.col);
-      const bd = manhattanDistance(enemy.row, enemy.col, best.row, best.col);
-      return d < bd ? p : best;
-    });
+      // Find nearest player mech
+      const target = players.reduce((best, p) => {
+        const d  = hexDistance(enemy.row, enemy.col, p.row, p.col);
+        const bd = hexDistance(enemy.row, enemy.col, best.row, best.col);
+        return d < bd ? p : best;
+      });
 
-    const weaponData = this.scene.getWeapon(enemy, 0);
-    if (!weaponData) { onDone(); return; }
+      const weaponData = this.scene.getWeapon(enemy, 0);
+      if (!weaponData) return;
 
-    const dist = manhattanDistance(enemy.row, enemy.col, target.row, target.col);
+      const dist = hexDistance(enemy.row, enemy.col, target.row, target.col);
 
-    // === Move phase ===
-    if (enemy.ap > 0) {
-      if (dist > weaponData.range) {
-        // Move toward target
+      // === Move phase ===
+      if (enemy.ap > 0 && dist > weaponData.range) {
         const otherMechs = [
           ...this.scene.playerMechs.filter(m => m.alive && !m.stealthed),
           ...this.scene.enemyMechs.filter(m => m.alive && m !== enemy),
@@ -90,11 +85,10 @@ export default class AIController {
               enemy.col = dest.col;
               this.scene.grid[dest.row][dest.col].mech = enemy;
 
-              // Update facing direction after movement
               enemy.setFacing(getFacingFromMovement(fromRow, fromCol, dest.row, dest.col));
 
               await enemy.moveTo(
-                this.scene.tileX(dest.col),
+                this.scene.tileX(dest.col, dest.row),
                 this.scene.tileY(dest.row)
               );
               enemy.ap -= 1;
@@ -102,58 +96,58 @@ export default class AIController {
           }
         }
       }
-    }
 
-    // === Attack phase ===
-    const newDist = manhattanDistance(enemy.row, enemy.col, target.row, target.col);
+      // === Attack phase ===
+      const newDist = hexDistance(enemy.row, enemy.col, target.row, target.col);
+      const hasLoS  = hasLineOfSight(
+        this.scene.grid,
+        enemy.row, enemy.col,
+        target.row, target.col
+      );
 
-    // Check line of sight before committing to an attack
-    const hasLoS = hasLineOfSight(
-      this.scene.grid,
-      enemy.row, enemy.col,
-      target.row, target.col
-    );
+      if (enemy.ap > 0 && newDist <= weaponData.range && !enemy.overheated && hasLoS) {
+        const flanking = isFlanking(enemy, target);
+        const result   = resolveAttack(enemy, target, weaponData, {
+          flanking,
+          grid: this.scene.grid,
+        });
 
-    if (enemy.ap > 0 && newDist <= weaponData.range && !enemy.overheated && hasLoS) {
-      const flanking = isFlanking(enemy, target);
-      const result = resolveAttack(enemy, target, weaponData, {
-        flanking,
-        grid: this.scene.grid,
-      });
+        enemy.ap -= 1;
+        const justOverheated = applyHeat(enemy, result.heatGain);
 
-      enemy.ap -= 1;
-      const justOverheated = applyHeat(enemy, result.heatGain);
+        if (result.hit) {
+          const prevFrontArmor = target.frontArmor;
+          const prevRearArmor  = target.rearArmor;
+          const died = applyDamage(target, result.damage, flanking);
 
-      if (result.hit) {
-        const prevFrontArmor = target.frontArmor;
-        const prevRearArmor  = target.rearArmor;
-        const died = applyDamage(target, result.damage, flanking);
+          const armorBroken = flanking
+            ? (prevRearArmor > 0 && target.rearArmor <= 0)
+            : (prevFrontArmor > 0 && target.frontArmor <= 0);
 
-        const armorBroken = flanking
-          ? (prevRearArmor > 0 && target.rearArmor <= 0)
-          : (prevFrontArmor > 0 && target.frontArmor <= 0);
+          await target.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken });
 
-        await target.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken });
-
-        if (died) {
-          target.alive = false;
-          await target.playDeathEffect();
-          this.scene.cameras.main.shake(200, 0.012);
-          this.scene.grid[target.row][target.col].mech = null;
-          if (target.team === 'player') this.scene.stats.mechsLost++;
-          EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
+          if (died) {
+            target.alive = false;
+            await target.playDeathEffect();
+            this.scene.cameras.main.shake(200, 0.012);
+            this.scene.grid[target.row][target.col].mech = null;
+            if (target.team === 'player') this.scene.stats.mechsLost++;
+            EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
+          } else {
+            if (result.damage >= 15) this.scene.cameras.main.shake(100, 0.006);
+            if (justOverheated) await enemy.playOverheatEffect();
+          }
         } else {
-          if (result.damage >= 15) this.scene.cameras.main.shake(100, 0.006);
-          if (justOverheated) await enemy.playOverheatEffect();
+          await target.playMissEffect();
         }
-      } else {
-        await target.playMissEffect();
+
+        EventBridge.emit('log', result.logMessage);
+        EventBridge.emit('mechUpdated', target.getState());
       }
-
-      EventBridge.emit('log', result.logMessage);
-      EventBridge.emit('mechUpdated', target.getState());
+    } catch (err) {
+      console.error(`AI error for ${enemy?.id}:`, err);
+    } finally {
+      onDone();
     }
-
-    onDone();
   }
 }

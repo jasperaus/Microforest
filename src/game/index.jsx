@@ -38,7 +38,7 @@ export default function IronCadetsGame({ onBack }) {
         parent: containerRef.current,
         scale: {
           mode: Phaser.Scale.FIT,
-          autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
         },
         scene: [BootScene, MenuScene, StoryScene, MechSelectScene, BattleScene, VictoryScene],
       });
@@ -80,19 +80,23 @@ export default function IronCadetsGame({ onBack }) {
     );
   }
 
+  const ratio = CANVAS_WIDTH / CANVAS_HEIGHT; // 1.6
+
   return (
     <div style={{
-      position: 'relative',
-      width: '100%',
-      maxWidth: '100vw',
-      margin: '0 auto',
-      background: '#1a1a2e',
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#0a0a1e',
+      overflow: 'hidden',
     }}>
-      {/* Back button */}
+      {/* Back button — fixed so it's always visible */}
       <button
         onClick={onBack}
         style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 6,
           left: 6,
           zIndex: 200,
@@ -109,27 +113,29 @@ export default function IronCadetsGame({ onBack }) {
         ← Back
       </button>
 
-      {/* Phaser canvas mount point */}
-      <div
-        ref={containerRef}
-        style={{
-          width: '100%',
-          aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-        }}
-      />
+      {/* Game wrapper — constrained to fit within the viewport without scrolling */}
+      <div style={{
+        position: 'relative',
+        width: `min(100vw, calc(100vh * ${ratio}))`,
+        aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+        flexShrink: 0,
+      }}>
+        {/* Phaser canvas mount point */}
+        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* React HUD overlay — only shown during battle */}
-      {hudVisible && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          <HUDOverlay gameRef={gameRef} />
-        </div>
-      )}
+        {/* React HUD overlay — only shown during battle */}
+        {hudVisible && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <HUDOverlay gameRef={gameRef} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,10 @@
-import { TILE_WALL, TILE_WATER } from '../../config.js';
+import {
+  TILE_WALL, TILE_WATER,
+  hexNeighbors, hexDistance, offsetToCube,
+} from '../../config.js';
 
 /**
- * BFS flood-fill: returns all tiles reachable within `steps` moves.
+ * BFS flood-fill: returns all tiles reachable within `steps` hex moves.
  * Blocked by walls, water, and optionally other mechs.
  */
 export function getReachableTiles(grid, startRow, startCol, steps, blockedByMechs = []) {
@@ -20,15 +23,10 @@ export function getReachableTiles(grid, startRow, startCol, steps, blockedByMech
     const { row, col, stepsLeft } = queue.shift();
     if (stepsLeft === 0) continue;
 
-    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of dirs) {
-      const nr = row + dr;
-      const nc = col + dc;
-      const k = key(nr, nc);
-
+    for (const { row: nr, col: nc } of hexNeighbors(row, col)) {
       if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+      const k = key(nr, nc);
       if (visited.has(k)) continue;
-
       const tile = grid[nr][nc];
       if (tile.type === TILE_WALL || tile.type === TILE_WATER) continue;
       if (blockedSet.has(k)) continue;
@@ -42,49 +40,51 @@ export function getReachableTiles(grid, startRow, startCol, steps, blockedByMech
   return reachable;
 }
 
-/**
- * Manhattan distance between two tile positions.
- */
-export function manhattanDistance(r1, c1, r2, c2) {
-  return Math.abs(r1 - r2) + Math.abs(c1 - c2);
-}
+// Re-export for callers that imported from here previously.
+export { hexDistance };
 
 /**
- * Bresenham's line-of-sight check.
- * Returns false if any intermediate tile between origin and target is a wall.
+ * Hex line-of-sight via cube-coordinate lerp.
+ * Returns false if any intermediate tile is a wall.
  */
 export function hasLineOfSight(grid, fromRow, fromCol, toRow, toCol) {
-  let x0 = fromCol, y0 = fromRow;
-  const x1 = toCol,  y1 = toRow;
+  const [x1, y1, z1] = offsetToCube(fromRow, fromCol);
+  const [x2, y2, z2] = offsetToCube(toRow, toCol);
+  const N = Math.round((Math.abs(x1 - x2) + Math.abs(y1 - y2) + Math.abs(z1 - z2)) / 2);
 
-  const dx = Math.abs(x1 - x0);
-  const dy = Math.abs(y1 - y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
+  if (N === 0) return true;
 
-  while (true) {
-    // Check intermediate tiles (not origin, not destination)
-    const isOrigin      = x0 === fromCol && y0 === fromRow;
-    const isDestination = x0 === x1      && y0 === y1;
+  for (let i = 1; i < N; i++) {
+    const t = i / N;
+    const fx = x1 + (x2 - x1) * t;
+    const fy = y1 + (y2 - y1) * t;
+    const fz = z1 + (z2 - z1) * t;
 
-    if (!isOrigin && !isDestination) {
-      if (!grid[y0] || !grid[y0][x0]) return false;
-      if (grid[y0][x0].type === TILE_WALL) return false;
-    }
+    // Round to nearest hex using cube rounding
+    let rx = Math.round(fx);
+    let ry = Math.round(fy);
+    let rz = Math.round(fz);
+    const dx = Math.abs(rx - fx);
+    const dy = Math.abs(ry - fy);
+    const dz = Math.abs(rz - fz);
+    if (dx > dy && dx > dz)      rx = -ry - rz;
+    else if (dy > dz)             ry = -rx - rz;
+    else                          rz = -rx - ry;
 
-    if (isDestination) break;
+    // Convert cube back to offset
+    const r = rz;
+    const c = rx + (rz - (rz & 1)) / 2;
 
-    const e2 = 2 * err;
-    if (e2 > -dy) { err -= dy; x0 += sx; }
-    if (e2 <  dx) { err += dx; y0 += sy; }
+    if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length) return false;
+    if (!grid[r] || !grid[r][c]) return false;
+    if (grid[r][c].type === TILE_WALL) return false;
   }
 
   return true;
 }
 
 /**
- * Get all tiles within attack range (Manhattan radius).
+ * Get all tiles within hex attack range (hex distance ≤ range).
  * When checkLoS is true, tiles blocked by walls are excluded.
  */
 export function getAttackTiles(grid, fromRow, fromCol, range, checkLoS = false) {
@@ -95,7 +95,7 @@ export function getAttackTiles(grid, fromRow, fromCol, range, checkLoS = false) 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (r === fromRow && c === fromCol) continue;
-      if (manhattanDistance(fromRow, fromCol, r, c) > range) continue;
+      if (hexDistance(fromRow, fromCol, r, c) > range) continue;
       if (checkLoS && !hasLineOfSight(grid, fromRow, fromCol, r, c)) continue;
       tiles.push({ row: r, col: c });
     }
@@ -105,7 +105,8 @@ export function getAttackTiles(grid, fromRow, fromCol, range, checkLoS = false) 
 }
 
 /**
- * A* pathfinding — returns array of {row, col} steps from start toward goal.
+ * A* pathfinding for the hex grid.
+ * Returns array of {row, col} steps from start toward goal (not including start).
  */
 export function findPath(grid, startRow, startCol, goalRow, goalCol, blockedByMechs = []) {
   const rows = grid.length;
@@ -113,7 +114,7 @@ export function findPath(grid, startRow, startCol, goalRow, goalCol, blockedByMe
   const key = (r, c) => `${r},${c}`;
   const blockedSet = new Set(blockedByMechs.map(m => key(m.row, m.col)));
 
-  const heuristic = (r, c) => manhattanDistance(r, c, goalRow, goalCol);
+  const heuristic = (r, c) => hexDistance(r, c, goalRow, goalCol);
 
   const open = [{ row: startRow, col: startCol, g: 0, f: heuristic(startRow, startCol) }];
   const cameFrom = new Map();
@@ -136,13 +137,9 @@ export function findPath(grid, startRow, startCol, goalRow, goalCol, blockedByMe
       return path;
     }
 
-    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of dirs) {
-      const nr = row + dr;
-      const nc = col + dc;
-      const nk = key(nr, nc);
-
+    for (const { row: nr, col: nc } of hexNeighbors(row, col)) {
       if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+      const nk = key(nr, nc);
       const tile = grid[nr][nc];
       if (tile.type === TILE_WALL || tile.type === TILE_WATER) continue;
       if (blockedSet.has(nk) && !(nr === goalRow && nc === goalCol)) continue;
