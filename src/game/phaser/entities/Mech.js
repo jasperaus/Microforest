@@ -171,7 +171,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         x, y,
         duration: 280,
         ease: 'Sine.easeInOut',
-        onComplete: resolve,
+        onComplete: () => { try { /* no-op */ } finally { resolve(); } },
       });
     });
   }
@@ -191,8 +191,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         repeat: flashRepeats,
         duration: 70,
         onComplete: () => {
-          this.bodySprite.setAlpha(this.stealthed ? 0.3 : 1);
-          resolve();
+          try { this.bodySprite?.setAlpha(this.stealthed ? 0.3 : 1); } finally { resolve(); }
         },
       });
 
@@ -248,7 +247,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         y: txt.y - 30,
         alpha: 0,
         duration: 900,
-        onComplete: () => { txt.destroy(); resolve(); },
+        onComplete: () => { try { txt?.destroy(); } finally { resolve(); } },
       });
     });
   }
@@ -269,7 +268,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         y: txt.y - 30,
         alpha: 0,
         duration: 700,
-        onComplete: () => { txt.destroy(); resolve(); },
+        onComplete: () => { try { txt?.destroy(); } finally { resolve(); } },
       });
     });
   }
@@ -292,7 +291,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         y: txt.y - 32,
         alpha: 0,
         duration: 900,
-        onComplete: () => { txt.destroy(); resolve(); },
+        onComplete: () => { try { txt?.destroy(); } finally { resolve(); } },
       });
     });
   }
@@ -309,8 +308,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         duration: 500,
         ease: 'Power2',
         onComplete: () => {
-          this.setVisible(false);
-          resolve();
+          try { this.setVisible(false); } finally { resolve(); }
         },
       });
 
@@ -336,7 +334,7 @@ export default class Mech extends Phaser.GameObjects.Container {
         targets: this.bodySprite,
         alpha: 0.25,
         duration: 400,
-        onComplete: resolve,
+        onComplete: () => { try { /* no-op */ } finally { resolve(); } },
       });
     });
   }

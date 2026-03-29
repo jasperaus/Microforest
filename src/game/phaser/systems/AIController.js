@@ -5,6 +5,9 @@ import EventBridge from '../EventBridge.js';
 
 const AI_DELAY = 600; // ms between AI actions
 
+/** Race an animation Promise against a timeout — prevents indefinite hangs if a tween callback fails. */
+const safeAnim = (p, ms = 1800) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
+
 /**
  * AIController: drives enemy mech behaviour each turn.
  * Behavior: move toward nearest player mech, attack if in range + LoS.
@@ -23,7 +26,20 @@ export default class AIController {
       coolDown(m);
     });
 
-    this._runNextEnemy([...enemies], onComplete);
+    // Guard against double-completion (from watchdog or normal path)
+    let finished = false;
+    const finish = () => { if (!finished) { finished = true; onComplete(); } };
+
+    // Failsafe: if entire enemy turn exceeds 12 s, force-complete it
+    const watchdog = this.scene.time.delayedCall(12000, () => {
+      console.warn('AIController: enemy turn watchdog fired — forcing turn end');
+      finish();
+    });
+
+    this._runNextEnemy([...enemies], () => {
+      watchdog.remove(false);
+      finish();
+    });
   }
 
   _runNextEnemy(remaining, onComplete) {
@@ -87,10 +103,10 @@ export default class AIController {
 
               enemy.setFacing(getFacingFromMovement(fromRow, fromCol, dest.row, dest.col));
 
-              await enemy.moveTo(
+              await safeAnim(enemy.moveTo(
                 this.scene.tileX(dest.col, dest.row),
                 this.scene.tileY(dest.row)
-              );
+              ));
               enemy.ap -= 1;
             }
           }
@@ -124,21 +140,21 @@ export default class AIController {
             ? (prevRearArmor > 0 && target.rearArmor <= 0)
             : (prevFrontArmor > 0 && target.frontArmor <= 0);
 
-          await target.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken });
+          await safeAnim(target.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken }));
 
           if (died) {
             target.alive = false;
-            await target.playDeathEffect();
+            await safeAnim(target.playDeathEffect());
             this.scene.cameras.main.shake(200, 0.012);
             this.scene.grid[target.row][target.col].mech = null;
             if (target.team === 'player') this.scene.stats.mechsLost++;
             EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
           } else {
             if (result.damage >= 15) this.scene.cameras.main.shake(100, 0.006);
-            if (justOverheated) await enemy.playOverheatEffect();
+            if (justOverheated) await safeAnim(enemy.playOverheatEffect());
           }
         } else {
-          await target.playMissEffect();
+          await safeAnim(target.playMissEffect());
         }
 
         EventBridge.emit('log', result.logMessage);
