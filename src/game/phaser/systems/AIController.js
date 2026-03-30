@@ -2,36 +2,34 @@ import { getFacingFromMovement } from '../../config.js';
 import { findPath, hexDistance, hasLineOfSight } from './PathFinder.js';
 import { resolveAttack, isFlanking, applyDamage, applyHeat, coolDown } from './CombatResolver.js';
 import EventBridge from '../EventBridge.js';
+import { safeAnim } from '../../r3f/animUtils.js';
 
 const AI_DELAY = 600; // ms between AI actions
 
-/** Race an animation Promise against a timeout — prevents indefinite hangs if a tween callback fails. */
-const safeAnim = (p, ms = 1800) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
-
 /**
  * AIController: drives enemy mech behaviour each turn.
- * Behavior: move toward nearest player mech, attack if in range + LoS.
+ * Works with either a Phaser BattleScene (legacy) or a plain GameContext object.
  */
 export default class AIController {
-  constructor(scene) {
-    this.scene = scene;
+  constructor(ctx) {
+    this.ctx = ctx;
+    // Legacy alias
+    this.scene = ctx;
   }
 
   runEnemyTurn(onComplete) {
-    const enemies = this.scene.enemyMechs.filter(m => m.alive);
+    const enemies = this.ctx.enemyMechs.filter(m => m.alive);
 
-    // Reset AP and cool down heat
     enemies.forEach(m => {
       m.ap = m.maxAp;
       coolDown(m);
     });
 
-    // Guard against double-completion (from watchdog or normal path)
     let finished = false;
     const finish = () => { if (!finished) { finished = true; onComplete(); } };
 
     // Failsafe: if entire enemy turn exceeds 12 s, force-complete it
-    const watchdog = this.scene.time.delayedCall(12000, () => {
+    const watchdog = this.ctx.time.delayedCall(12000, () => {
       console.warn('AIController: enemy turn watchdog fired — forcing turn end');
       finish();
     });
@@ -49,7 +47,7 @@ export default class AIController {
     }
 
     const enemy = remaining.shift();
-    this.scene.time.delayedCall(AI_DELAY, () => {
+    this.ctx.time.delayedCall(AI_DELAY, () => {
       const next = () => this._runNextEnemy(remaining, onComplete);
       this._actEnemy(enemy, next);
     });
@@ -59,17 +57,16 @@ export default class AIController {
     try {
       if (!enemy.alive) return;
 
-      const players = this.scene.playerMechs.filter(m => m.alive && !m.stealthed);
+      const players = this.ctx.playerMechs.filter(m => m.alive && !m.stealthed);
       if (players.length === 0) return;
 
-      // Find nearest player mech
       const target = players.reduce((best, p) => {
         const d  = hexDistance(enemy.row, enemy.col, p.row, p.col);
         const bd = hexDistance(enemy.row, enemy.col, best.row, best.col);
         return d < bd ? p : best;
       });
 
-      const weaponData = this.scene.getWeapon(enemy, 0);
+      const weaponData = this.ctx.getWeapon(enemy, 0);
       if (!weaponData) return;
 
       const dist = hexDistance(enemy.row, enemy.col, target.row, target.col);
@@ -77,36 +74,34 @@ export default class AIController {
       // === Move phase ===
       if (enemy.ap > 0 && dist > weaponData.range) {
         const otherMechs = [
-          ...this.scene.playerMechs.filter(m => m.alive && !m.stealthed),
-          ...this.scene.enemyMechs.filter(m => m.alive && m !== enemy),
+          ...this.ctx.playerMechs.filter(m => m.alive && !m.stealthed),
+          ...this.ctx.enemyMechs.filter(m => m.alive && m !== enemy),
         ];
         const path = findPath(
-          this.scene.grid,
+          this.ctx.grid,
           enemy.row, enemy.col,
           target.row, target.col,
           otherMechs
         );
 
         if (path.length > 0) {
-          // Move up to speed tiles, stopping before the occupied goal tile
           const destIndex = Math.min(enemy.speed - 1, path.length - 2);
           if (destIndex >= 0) {
             const dest = path[destIndex];
-            if (dest && this.scene.grid[dest.row][dest.col].mech === null) {
+            if (dest && this.ctx.grid[dest.row][dest.col].mech === null) {
               const fromRow = enemy.row;
               const fromCol = enemy.col;
 
-              this.scene.grid[enemy.row][enemy.col].mech = null;
+              this.ctx.grid[enemy.row][enemy.col].mech = null;
               enemy.row = dest.row;
               enemy.col = dest.col;
-              this.scene.grid[dest.row][dest.col].mech = enemy;
+              this.ctx.grid[dest.row][dest.col].mech = enemy;
 
               enemy.setFacing(getFacingFromMovement(fromRow, fromCol, dest.row, dest.col));
 
-              await safeAnim(enemy.moveTo(
-                this.scene.tileX(dest.col, dest.row),
-                this.scene.tileY(dest.row)
-              ));
+              const [x, z] = this.ctx.tileXZ(dest.col, dest.row);
+              const anim = this.ctx.getMechAnim(enemy.id);
+              if (anim) await safeAnim(anim.moveTo(x, z));
               enemy.ap -= 1;
             }
           }
@@ -116,7 +111,7 @@ export default class AIController {
       // === Attack phase ===
       const newDist = hexDistance(enemy.row, enemy.col, target.row, target.col);
       const hasLoS  = hasLineOfSight(
-        this.scene.grid,
+        this.ctx.grid,
         enemy.row, enemy.col,
         target.row, target.col
       );
@@ -125,7 +120,7 @@ export default class AIController {
         const flanking = isFlanking(enemy, target);
         const result   = resolveAttack(enemy, target, weaponData, {
           flanking,
-          grid: this.scene.grid,
+          grid: this.ctx.grid,
         });
 
         enemy.ap -= 1;
@@ -140,21 +135,28 @@ export default class AIController {
             ? (prevRearArmor > 0 && target.rearArmor <= 0)
             : (prevFrontArmor > 0 && target.frontArmor <= 0);
 
-          await safeAnim(target.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken }));
+          const targetAnim = this.ctx.getMechAnim(target.id);
+          if (targetAnim) {
+            await safeAnim(targetAnim.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken }));
+          }
 
           if (died) {
             target.alive = false;
-            await safeAnim(target.playDeathEffect());
-            this.scene.cameras.main.shake(200, 0.012);
-            this.scene.grid[target.row][target.col].mech = null;
-            if (target.team === 'player') this.scene.stats.mechsLost++;
+            if (targetAnim) await safeAnim(targetAnim.playDeathEffect());
+            this.ctx.shakeCamera(200, 0.012);
+            this.ctx.grid[target.row][target.col].mech = null;
+            if (target.team === 'player') this.ctx.stats.mechsLost++;
             EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
           } else {
-            if (result.damage >= 15) this.scene.cameras.main.shake(100, 0.006);
-            if (justOverheated) await safeAnim(enemy.playOverheatEffect());
+            if (result.damage >= 15) this.ctx.shakeCamera(100, 0.006);
+            if (justOverheated) {
+              const enemyAnim = this.ctx.getMechAnim(enemy.id);
+              if (enemyAnim) await safeAnim(enemyAnim.playOverheatEffect());
+            }
           }
         } else {
-          await safeAnim(target.playMissEffect());
+          const targetAnim = this.ctx.getMechAnim(target.id);
+          if (targetAnim) await safeAnim(targetAnim.playMissEffect());
         }
 
         EventBridge.emit('log', result.logMessage);
