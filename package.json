@@ -5,16 +5,21 @@
   "homepage": "https://jasperaus.github.io/Microforest/",
   "dependencies": {
     "@ant-design/icons": "^5.3.0",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@react-three/postprocessing": "^2.19.1",
     "ajv": "^8.18.0",
     "antd": "^5.13.7",
     "chart.js": "^4.4.2",
     "leaflet": "^1.9.4",
     "phaser": "^3.80.1",
+    "postprocessing": "^6.39.0",
     "react": "^18.0.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.0.0",
     "react-leaflet": "^4.2.1",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "three": "^0.174.0"
   },
   "scripts": {
     "start": "react-scripts start",

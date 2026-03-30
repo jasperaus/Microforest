@@ -1,106 +1,28 @@
-import React, { useEffect, useRef, useState } from 'react';
-import Phaser from 'phaser';
-import HUDOverlay from './components/HUDOverlay.jsx';
-import EventBridge from './phaser/EventBridge.js';
+import React from 'react';
+import GameRoot from './r3f/GameRoot.jsx';
 
-// Scenes
-import BootScene from './phaser/scenes/BootScene.js';
-import MenuScene from './phaser/scenes/MenuScene.js';
-import StoryScene from './phaser/scenes/StoryScene.js';
-import MechSelectScene from './phaser/scenes/MechSelectScene.js';
-import BattleScene from './phaser/scenes/BattleScene.js';
-import VictoryScene from './phaser/scenes/VictoryScene.js';
-
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
-
-// Track which scenes need the React HUD overlay
-const BATTLE_SCENES = new Set(['BattleScene']);
-
+/**
+ * IronCadetsGame — game entry point.
+ *
+ * The Phaser engine has been replaced with Three.js + React Three Fiber.
+ * GameRoot manages scene routing and mounts the R3F <Canvas> internally.
+ */
 export default function IronCadetsGame({ onBack }) {
-  const containerRef = useRef(null);
-  const gameRef = useRef(null);
-  const [activeScene, setActiveScene] = useState('BootScene');
-  const [hudVisible, setHudVisible] = useState(false);
-  const [loadError, setLoadError] = useState(null);
-
-  useEffect(() => {
-    let game = null;
-
-    try {
-      game = new Phaser.Game({
-        type: Phaser.AUTO,
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        backgroundColor: '#1a1a2e',
-        pixelArt: true,
-        antialias: false,
-        roundPixels: true,
-        parent: containerRef.current,
-        scale: {
-          mode: Phaser.Scale.FIT,
-          autoCenter: Phaser.Scale.CENTER_BOTH,
-        },
-        scene: [BootScene, MenuScene, StoryScene, MechSelectScene, BattleScene, VictoryScene],
-      });
-
-      gameRef.current = game;
-
-      // Track active scene to show/hide React HUD
-      game.events.on('step', () => {
-        if (!game.scene) return;
-        const active = game.scene.getScenes(true);
-        if (active.length > 0) {
-          const sceneName = active[0].scene.key;
-          setActiveScene(sceneName);
-          setHudVisible(BATTLE_SCENES.has(sceneName));
-        }
-      });
-    } catch (e) {
-      setLoadError('Failed to load game engine. Please refresh the page.');
-    }
-
-    return () => {
-      // Clean up Phaser instance to prevent memory leaks
-      EventBridge.clearListener();
-      if (game) {
-        game.destroy(true);
-        game = null;
-      }
-      gameRef.current = null;
-    };
-  }, []);
-
-  if (loadError) {
-    return (
-      <div style={{ background: '#0a0a1e', color: '#ff4444', fontFamily: 'monospace', padding: 32, textAlign: 'center' }}>
-        <div style={{ fontSize: 20, marginBottom: 12 }}>⚠ Engine Load Error</div>
-        <div style={{ fontSize: 12, color: '#888' }}>{loadError}</div>
-        <button onClick={onBack} style={{ marginTop: 20, padding: '8px 20px', cursor: 'pointer', background: '#112244', color: '#aaccff', border: '1px solid #334466', borderRadius: 4, fontFamily: 'monospace' }}>← Back to Home</button>
-      </div>
-    );
-  }
-
-  const ratio = CANVAS_WIDTH / CANVAS_HEIGHT; // 1.6
-
   return (
     <div style={{
+      position: 'relative',
       width: '100vw',
       height: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#0a0a1e',
+      background: '#07070f',
       overflow: 'hidden',
     }}>
-      {/* Back button — fixed so it's always visible */}
+      {/* Back button */}
       <button
         onClick={onBack}
         style={{
           position: 'fixed',
-          top: 6,
-          left: 6,
-          zIndex: 200,
-          background: 'rgba(5, 5, 20, 0.85)',
+          top: 6, left: 6, zIndex: 300,
+          background: 'rgba(5,5,20,0.85)',
           border: '1px solid #223355',
           color: '#446688',
           fontFamily: 'monospace',
@@ -113,29 +35,7 @@ export default function IronCadetsGame({ onBack }) {
         ← Back
       </button>
 
-      {/* Game wrapper — constrained to fit within the viewport without scrolling */}
-      <div style={{
-        position: 'relative',
-        width: `min(100vw, calc(100vh * ${ratio}))`,
-        aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-        flexShrink: 0,
-      }}>
-        {/* Phaser canvas mount point */}
-        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-
-        {/* React HUD overlay — only shown during battle */}
-        {hudVisible && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
-            <HUDOverlay gameRef={gameRef} />
-          </div>
-        )}
-      </div>
+      <GameRoot />
     </div>
   );
 }

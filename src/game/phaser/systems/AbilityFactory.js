@@ -1,14 +1,13 @@
 import abilitiesData from '../../data/abilities.json';
 import { PHASE } from '../../config.js';
 import EventBridge from '../EventBridge.js';
+import { safeAnim } from '../../r3f/animUtils.js';
 
 /**
  * AbilityFactory: data-driven ability execution.
  *
- * Each ability entry in abilities.json has an `effect` field that maps to
- * one of the handlers below. New abilities can be added by extending the
- * JSON without touching this file — unless a genuinely new effect type
- * is needed.
+ * Works with either a Phaser BattleScene (legacy) or a plain GameContext object
+ * — the `ctx` parameter exposes the same interface in both cases.
  */
 
 const abilitiesMap = {};
@@ -20,10 +19,10 @@ abilitiesData.forEach(a => { abilitiesMap[a.id] = a; });
  * @param {string}      abilityId   — matches `id` in abilities.json
  * @param {Mech}        mech        — the acting mech
  * @param {TurnManager} turnManager — for phase changes / requestAttack
- * @param {BattleScene} scene       — for access to mechs and highlights
+ * @param {object}      ctx         — GameContext (or legacy BattleScene)
  * @returns {Promise<void>}
  */
-export async function executeAbility(abilityId, mech, turnManager, scene) {
+export async function executeAbility(abilityId, mech, turnManager, ctx) {
   const ability = abilitiesMap[abilityId];
   if (!ability) {
     console.warn(`AbilityFactory: unknown ability id "${abilityId}"`);
@@ -36,7 +35,11 @@ export async function executeAbility(abilityId, mech, turnManager, scene) {
       mech.stealthed = true;
       mech.ap -= ability.apCost;
       EventBridge.emit('log', `${mech.name} activates ${ability.name} — invisible for 1 round!`);
-      await mech.playStealthEffect();
+      {
+        const anim = ctx.getMechAnim?.(mech.id);
+        if (anim) await safeAnim(anim.playStealthEffect());
+        else if (mech.playStealthEffect) await safeAnim(mech.playStealthEffect());
+      }
       break;
 
     case 'called_shot':
@@ -48,7 +51,7 @@ export async function executeAbility(abilityId, mech, turnManager, scene) {
 
     case 'heal': {
       const healAmt = ability.healAmount || 20;
-      const allies = scene.playerMechs.filter(m =>
+      const allies = ctx.playerMechs.filter(m =>
         m.alive && m !== mech &&
         Math.abs(m.row - mech.row) + Math.abs(m.col - mech.col) <= 1
       );
@@ -59,21 +62,24 @@ export async function executeAbility(abilityId, mech, turnManager, scene) {
       mech.ap -= ability.apCost;
       EventBridge.emit('log', `${mech.name} repairs ${healTarget.name} for ${healAmt} HP!`);
       EventBridge.emit('mechUpdated', healTarget.getState());
-      await healTarget.playHealEffect();
+      {
+        const anim = ctx.getMechAnim?.(healTarget.id);
+        if (anim) await safeAnim(anim.playHealEffect());
+        else if (healTarget.playHealEffect) await safeAnim(healTarget.playHealEffect());
+      }
       break;
     }
 
     case 'melee_knockback':
-      // Deduct AP, show target highlights, then wait for the player to click
       mech.ap -= ability.apCost;
-      scene.showAttackHighlights(mech, ability.range);
+      ctx.showAttackHighlights(mech, ability.range);
       turnManager.setPhase(PHASE.SPECIAL_SELECT);
       EventBridge.emit('log', `${ability.name} ready — select an adjacent target!`);
       return;
 
     case 'aoe_attack':
       mech.ap -= ability.apCost;
-      scene.showAttackHighlights(mech, ability.range);
+      ctx.showAttackHighlights(mech, ability.range);
       turnManager.setPhase(PHASE.SPECIAL_SELECT);
       EventBridge.emit('log', `${ability.name} ready — select a target!`);
       return;
@@ -83,7 +89,6 @@ export async function executeAbility(abilityId, mech, turnManager, scene) {
       break;
   }
 
-  // Return mech to selected state
   turnManager.selectedMech = mech;
   turnManager.setPhase(PHASE.MECH_SELECTED);
   EventBridge.emit('mechSelected', mech.getState());
