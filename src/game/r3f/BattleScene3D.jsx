@@ -1,12 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { PHASE, TILE_GRASS, TILE_WALL, TILE_WATER, TILE_OBJECTIVE } from '../config.js';
 import mechsData from '../data/mechs.json';
-import weaponsData from '../data/weapons.json';
 import campaignsData from '../data/campaigns.json';
 import EventBridge from '../phaser/EventBridge.js';
 import TurnManager from '../phaser/systems/TurnManager.js';
 import AIController from '../phaser/systems/AIController.js';
-import { createGameContext } from '../GameContext.js';
 import HexGrid from './HexGrid.jsx';
 import MechModel from './MechModel.jsx';
 
@@ -72,7 +70,10 @@ function buildGrid(map) {
 
 // ── Mech world-space Y position (sits on top of tile) ────────────────────
 
-const TILE_TOP_Y = { [TILE_GRASS]: 0.15, [TILE_WALL]: 0.50, [TILE_WATER]: 0.05, [TILE_OBJECTIVE]: 0.25 };
+const TILE_TOP_Y = {
+  [TILE_GRASS]: 0.15, [TILE_WALL]: 0.50,
+  [TILE_WATER]: 0.05, [TILE_OBJECTIVE]: 0.25,
+};
 
 /**
  * BattleScene3D — full 3D battle scene.
@@ -82,10 +83,10 @@ const TILE_TOP_Y = { [TILE_GRASS]: 0.15, [TILE_WALL]: 0.50, [TILE_WATER]: 0.05, 
  *   selectedMechs string[] | null  — player's chosen mech ids
  *   ctx           GameContext      — shared dependency container
  *   onSceneEnd    (sceneName, data) => void
+ *   onReady       () => void       — called when first player turn is ready
  */
-export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onSceneEnd }) {
+export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onSceneEnd, onReady }) {
   const [highlights, setHighlights] = useState(new Map());
-  const [mechPositions, setMechPositions] = useState(new Map()); // mechId → [x,y,z]
   const [, forceUpdate] = useState(0);
   const turnManagerRef = useRef(null);
   const initialized = useRef(false);
@@ -107,29 +108,31 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
     // Build grid
     ctx.grid = buildGrid(mission.map);
 
-    // Build mech lookup
+    // Build mech data lookup (by original mechId)
     const mechLookup = {};
     mechsData.forEach(m => { mechLookup[m.id] = m; });
 
-    // Spawn player mechs
+    // Spawn player mechs — use selectedMechs if provided, else mission defaults
     const spawns = mission.playerSpawns;
     const finalSpawns = (selectedMechs?.length > 0)
       ? selectedMechs.slice(0, spawns.length).map((id, i) => ({ ...spawns[i], mechId: id }))
       : spawns;
 
-    finalSpawns.forEach(spawn => {
+    finalSpawns.forEach((spawn) => {
       const data = mechLookup[spawn.mechId];
       if (!data) return;
-      const mech = new MechState(data, spawn.row, spawn.col);
+      // Player mech IDs are already unique (zip, rex, bolt, nova, vex)
+      const mech = new MechState({ ...data, team: 'player' }, spawn.row, spawn.col);
       ctx.grid[spawn.row][spawn.col].mech = mech;
       ctx.playerMechs.push(mech);
     });
 
-    // Spawn enemy mechs
-    mission.enemySpawns.forEach(spawn => {
+    // Spawn enemy mechs — assign unique IDs to handle duplicate types (e.g. 2× drone_alpha)
+    mission.enemySpawns.forEach((spawn, i) => {
       const data = mechLookup[spawn.mechId];
       if (!data) return;
-      const mech = new MechState({ ...data, team: 'enemy' }, spawn.row, spawn.col);
+      const uid = spawn.mechId + '_e' + i;
+      const mech = new MechState({ ...data, id: uid, team: 'enemy' }, spawn.row, spawn.col);
       ctx.grid[spawn.row][spawn.col].mech = mech;
       ctx.enemyMechs.push(mech);
     });
@@ -141,16 +144,19 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
     ctx.aiController = ai;
     turnManagerRef.current = tm;
 
-    // Start game after brief delay (let R3F render first)
+    // Force re-render so HexGrid and MechModel components appear immediately
+    forceUpdate(n => n + 1);
+
+    // Start first player turn after a brief delay (lets R3F finish its first paint)
     setTimeout(() => {
       tm.startPlayerTurn();
+      // Signal GameRoot that the battle is ready (dismiss loading overlay)
+      onReady?.();
     }, 1200);
 
     return () => {
-      EventBridge.off('turnStart');
-      EventBridge.off('phaseChange');
-      EventBridge.off('mechUpdated');
-      EventBridge.off('mechKilled');
+      // Clean up EventBridge listener on unmount
+      EventBridge.clearListener();
     };
   }, []); // eslint-disable-line
 
@@ -199,7 +205,7 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
     }
   }, [ctx]);
 
-  // ── Mech click (shortcut to select) ─────────────────────────────────────
+  // ── Mech click (shortcut to select / attack) ─────────────────────────────
 
   const handleMechClick = useCallback((mechId) => {
     const tm = turnManagerRef.current;
@@ -230,17 +236,19 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
     ctx.registerMechAnim(mechId, api);
   }, [ctx]);
 
-  // ── Compute mech world positions ─────────────────────────────────────────
+  // ── Collect all mechs for rendering ──────────────────────────────────────
 
   const allMechs = [...ctx.playerMechs, ...ctx.enemyMechs];
 
   return (
     <group>
-      <HexGrid
-        grid={ctx.grid}
-        highlights={highlights}
-        onTileClick={handleTileClick}
-      />
+      {ctx.grid.length > 0 && (
+        <HexGrid
+          grid={ctx.grid}
+          highlights={highlights}
+          onTileClick={handleTileClick}
+        />
+      )}
 
       {allMechs.map(mech => {
         const [x, z] = ctx.tileXZ(mech.col, mech.row);

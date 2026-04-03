@@ -284,8 +284,10 @@ const MechModel = forwardRef(function MechModel(
     overheatResolve: null,
   });
 
-  const palette = MECH_PALETTE[mechId] ?? MECH_PALETTE.zip;
-  const BodyComponent = BODY_COMPONENTS[mechId] ?? ZipBody;
+  // Strip unique-spawn suffix (e.g. 'drone_alpha_e0' → 'drone_alpha')
+  const baseId = mechId.replace(/_e\d+$/, '');
+  const palette = MECH_PALETTE[baseId] ?? MECH_PALETTE.zip;
+  const BodyComponent = BODY_COMPONENTS[baseId] ?? ZipBody;
 
   // Expose animation API
   const api = {

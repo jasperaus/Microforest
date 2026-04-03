@@ -5,7 +5,26 @@ import EventBridge from '../phaser/EventBridge.js';
 
 const LOG_MAX = 6;
 
-export default function HUDOverlay({ gameRef }) {
+/**
+ * HUDOverlay — battle HUD rendered as an HTML overlay above the 3D canvas.
+ *
+ * Receives game state via EventBridge events (emitted by TurnManager /
+ * AIController / GameContext) and action callbacks from GameRoot.
+ *
+ * Props:
+ *   onEndTurn        () => void
+ *   onRequestMove    () => void   — GameRoot passes TurnManager's selectedMech
+ *   onRequestAttack  () => void
+ *   onRequestSpecial () => void
+ *   onDeselect       () => void
+ */
+export default function HUDOverlay({
+  onEndTurn,
+  onRequestMove,
+  onRequestAttack,
+  onRequestSpecial,
+  onDeselect,
+}) {
   const [phase, setPhase] = useState('IDLE');
   const [team, setTeam] = useState('player');
   const [turn, setTurn] = useState(1);
@@ -21,7 +40,6 @@ export default function HUDOverlay({ gameRef }) {
   }, []);
 
   useEffect(() => {
-    // Use a mounted flag to prevent setState calls after unmount (EventBridge race condition)
     let mounted = true;
 
     const handleEvent = ({ event, data }) => {
@@ -82,41 +100,18 @@ export default function HUDOverlay({ gameRef }) {
     };
   }, [addLog]);
 
-  // Scroll log to bottom
+  // Auto-scroll log to bottom
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
-  // Get battle scene for direct method calls
-  const getBattleScene = () => {
-    if (!gameRef.current) return null;
-    return gameRef.current.scene.getScene('BattleScene');
-  };
+  // ── Action handlers — delegate to GameRoot callbacks ───────────────────────
 
-  const handleMove = () => {
-    const scene = getBattleScene();
-    if (scene && scene.turnManager) scene.turnManager.requestMove(scene.turnManager.selectedMech);
-  };
-
-  const handleAttack = () => {
-    const scene = getBattleScene();
-    if (scene && scene.turnManager) scene.turnManager.requestAttack(scene.turnManager.selectedMech);
-  };
-
-  const handleSpecial = () => {
-    const scene = getBattleScene();
-    if (scene && scene.turnManager) scene.turnManager.requestSpecial(scene.turnManager.selectedMech);
-  };
-
-  const handleEndTurn = () => {
-    const scene = getBattleScene();
-    if (scene && scene.turnManager) scene.turnManager.endPlayerTurn();
-  };
-
-  const handleDeselect = () => {
-    const scene = getBattleScene();
-    if (scene && scene.turnManager) scene.turnManager.deselectMech();
-  };
+  const handleMove    = () => onRequestMove?.();
+  const handleAttack  = () => onRequestAttack?.();
+  const handleSpecial = () => onRequestSpecial?.();
+  const handleEndTurn = () => onEndTurn?.();
+  const handleDeselect = () => onDeselect?.();
 
   const isEnemyTurn = team === 'enemy' || phase === 'ENEMY_TURN';
 
@@ -136,7 +131,9 @@ export default function HUDOverlay({ gameRef }) {
         pointerEvents: 'none',
         flexShrink: 0,
       }}>
-        <div style={{ fontSize: 14, color: '#00eedd', fontWeight: 'bold', letterSpacing: 2 }}>IRON CADETS</div>
+        <div style={{ fontSize: 14, color: '#00eedd', fontWeight: 'bold', letterSpacing: 2 }}>
+          IRON CADETS
+        </div>
         <div style={{
           fontSize: 13, fontWeight: 'bold', letterSpacing: 1,
           color: isEnemyTurn ? '#ff4444' : '#44aaff',
@@ -151,13 +148,12 @@ export default function HUDOverlay({ gameRef }) {
         </div>
       </div>
 
-      {/* Middle row: mech card + canvas + enemy info */}
+      {/* Middle row */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', pointerEvents: 'none' }}>
-        {/* Left: Selected mech card */}
+        {/* Left: selected mech card + roster */}
         <div style={{ width: 220, flexShrink: 0, padding: 8, pointerEvents: 'auto' }}>
           <MechCard mech={selectedMech} />
 
-          {/* Player mech roster */}
           <div style={{ marginTop: 6 }}>
             {playerMechs.map(m => (
               <div key={m.id} style={{
@@ -172,20 +168,22 @@ export default function HUDOverlay({ gameRef }) {
                   width: 6, height: 6, borderRadius: '50%',
                   background: m.alive ? (m.ap > 0 ? '#44aaff' : '#334466') : '#222222',
                 }} />
-                <span style={{ fontSize: 10, color: m.alive ? '#aaccee' : '#333344', flex: 1 }}>{m.name}</span>
-                <span style={{ fontSize: 10, color: '#556677' }}>{m.alive ? `${m.hp}hp` : 'KO'}</span>
+                <span style={{ fontSize: 10, color: m.alive ? '#aaccee' : '#333344', flex: 1 }}>
+                  {m.name}
+                </span>
+                <span style={{ fontSize: 10, color: '#556677' }}>
+                  {m.alive ? `${m.hp}hp` : 'KO'}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Center: empty (Phaser canvas shows through) */}
+        {/* Centre: transparent (3D canvas shows through) */}
         <div style={{ flex: 1 }} />
 
         {/* Right: combat log */}
-        <div style={{
-          width: 260, flexShrink: 0, padding: 8, pointerEvents: 'none',
-        }}>
+        <div style={{ width: 260, flexShrink: 0, padding: 8, pointerEvents: 'none' }}>
           <div style={{
             background: 'rgba(5, 5, 20, 0.82)',
             border: '1px solid #1a1a3a',
@@ -194,8 +192,13 @@ export default function HUDOverlay({ gameRef }) {
             height: '100%',
             display: 'flex', flexDirection: 'column',
           }}>
-            <div style={{ fontSize: 10, color: '#334466', marginBottom: 4, letterSpacing: 1 }}>BATTLE LOG</div>
-            <div ref={logRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 10, color: '#334466', marginBottom: 4, letterSpacing: 1 }}>
+              BATTLE LOG
+            </div>
+            <div
+              ref={logRef}
+              style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}
+            >
               {log.map((msg, i) => (
                 <div key={i} style={{
                   fontSize: 10, color: '#778899', lineHeight: 1.3,
@@ -205,7 +208,9 @@ export default function HUDOverlay({ gameRef }) {
                 </div>
               ))}
               {log.length === 0 && (
-                <div style={{ fontSize: 9, color: '#223344', fontStyle: 'italic' }}>Battle begins...</div>
+                <div style={{ fontSize: 9, color: '#223344', fontStyle: 'italic' }}>
+                  Battle begins...
+                </div>
               )}
             </div>
           </div>

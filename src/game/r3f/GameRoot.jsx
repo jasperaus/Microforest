@@ -24,26 +24,21 @@ const SCENES = {
 
 /**
  * GameRoot — top-level scene router that manages the full game lifecycle.
- * Mounts:
- *   - A <Canvas> for all 3D scenes (BattleScene3D, background etc.)
- *   - Full-screen HTML overlays for menu, story, mech select, victory
- *   - HUDOverlay during battle
  */
 export default function GameRoot() {
   const [scene, setScene] = useState(SCENES.MENU);
   const [missionIndex, setMissionIndex] = useState(0);
   const [selectedMechs, setSelectedMechs] = useState(null);
   const [victoryData, setVictoryData] = useState(null);
+  const [battleReady, setBattleReady] = useState(false);
 
   // GameContext is rebuilt for each battle
   const ctxRef = useRef(null);
 
-  const getCtx = useCallback(() => {
-    if (!ctxRef.current) {
-      ctxRef.current = createGameContext(missionIndex, null, weaponsData);
-    }
-    return ctxRef.current;
-  }, [missionIndex]);
+  // Called by BattleScene3D once the first player turn is ready
+  const handleBattleReady = useCallback(() => {
+    setBattleReady(true);
+  }, []);
 
   // Called by BattleScene3D when transitioning to another scene
   const handleSceneEnd = useCallback((sceneName, data = {}) => {
@@ -53,7 +48,7 @@ export default function GameRoot() {
     }
   }, []);
 
-  // Handlers for the UI scenes
+  // Handlers for UI scenes
   const handleMenuStart = useCallback((dest) => {
     if (dest === 'mech_select') setScene(SCENES.MECH_SELECT);
   }, []);
@@ -64,8 +59,9 @@ export default function GameRoot() {
   }, []);
 
   const handleStoryContinue = useCallback(() => {
-    // Fresh context for each battle
+    // Fresh context for each battle; reset ready flag
     ctxRef.current = createGameContext(missionIndex, null, weaponsData);
+    setBattleReady(false);
     setScene(SCENES.BATTLE);
   }, [missionIndex]);
 
@@ -84,12 +80,37 @@ export default function GameRoot() {
     setScene(SCENES.MENU);
   }, []);
 
+  // ── HUD action callbacks (use TurnManager's real MechState instances) ──────
+
+  const handleRequestMove = useCallback(() => {
+    const tm = ctxRef.current?.turnManager;
+    if (tm) tm.requestMove(tm.selectedMech);
+  }, []);
+
+  const handleRequestAttack = useCallback(() => {
+    const tm = ctxRef.current?.turnManager;
+    if (tm) tm.requestAttack(tm.selectedMech);
+  }, []);
+
+  const handleRequestSpecial = useCallback(() => {
+    const tm = ctxRef.current?.turnManager;
+    if (tm) tm.requestSpecial(tm.selectedMech);
+  }, []);
+
+  const handleEndTurn = useCallback(() => {
+    ctxRef.current?.turnManager?.endPlayerTurn();
+  }, []);
+
+  const handleDeselect = useCallback(() => {
+    ctxRef.current?.turnManager?.deselectMech();
+  }, []);
+
   const showCanvas = scene === SCENES.BATTLE;
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
 
-      {/* 3D Canvas — only active during battle */}
+      {/* 3D Canvas — always mounted but only visible during battle */}
       <div style={{ position: 'absolute', inset: 0, visibility: showCanvas ? 'visible' : 'hidden' }}>
         <Canvas
           shadows={{ type: THREE.PCFSoftShadowMap }}
@@ -109,21 +130,26 @@ export default function GameRoot() {
               selectedMechs={selectedMechs}
               ctx={ctxRef.current}
               onSceneEnd={handleSceneEnd}
+              onReady={handleBattleReady}
             />
           )}
           <PostProcessing />
         </Canvas>
       </div>
 
+      {/* Loading overlay — shown from Deploy until first player turn begins */}
+      {scene === SCENES.BATTLE && !battleReady && (
+        <BattleLoadingOverlay />
+      )}
+
       {/* HUD — rendered above canvas during battle */}
-      {scene === SCENES.BATTLE && (
+      {scene === SCENES.BATTLE && battleReady && (
         <HUDOverlay
-          turnManager={ctxRef.current?.turnManager}
-          onEndTurn={() => ctxRef.current?.turnManager?.endPlayerTurn()}
-          onRequestMove={(mech) => ctxRef.current?.turnManager?.requestMove(mech)}
-          onRequestAttack={(mech) => ctxRef.current?.turnManager?.requestAttack(mech)}
-          onRequestSpecial={(mech) => ctxRef.current?.turnManager?.requestSpecial(mech)}
-          onSelectMech={(mech) => ctxRef.current?.turnManager?.selectMech(mech)}
+          onEndTurn={handleEndTurn}
+          onRequestMove={handleRequestMove}
+          onRequestAttack={handleRequestAttack}
+          onRequestSpecial={handleRequestSpecial}
+          onDeselect={handleDeselect}
         />
       )}
 
@@ -155,6 +181,60 @@ export default function GameRoot() {
           onMenu={handleMenu}
         />
       )}
+    </div>
+  );
+}
+
+// ── Loading overlay ───────────────────────────────────────────────────────────
+
+function BattleLoadingOverlay() {
+  const [dots, setDots] = React.useState('');
+
+  React.useEffect(() => {
+    const iv = setInterval(() => {
+      setDots(d => d.length >= 3 ? '' : d + '.');
+    }, 400);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'linear-gradient(160deg, #07070f, #0d0d1e)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'monospace', color: '#00eedd',
+      zIndex: 10,
+    }}>
+      {/* Progress bar */}
+      <div style={{ width: 280, marginBottom: 24 }}>
+        <div style={{
+          width: '100%', height: 3,
+          background: '#0a1a22',
+          borderRadius: 2, overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            background: 'linear-gradient(90deg, #00eedd, #4488ff)',
+            animation: 'loading-bar 1.2s ease-in-out forwards',
+          }} />
+        </div>
+      </div>
+
+      <div style={{ fontSize: 13, letterSpacing: 4, color: '#00eedd' }}>
+        INITIALIZING BATTLEFIELD{dots}
+      </div>
+      <div style={{ fontSize: 10, color: '#334455', marginTop: 10, letterSpacing: 2 }}>
+        DEPLOYING UNITS
+      </div>
+
+      <style>{`
+        @keyframes loading-bar {
+          0%   { width: 0%; }
+          60%  { width: 70%; }
+          100% { width: 95%; }
+        }
+      `}</style>
     </div>
   );
 }

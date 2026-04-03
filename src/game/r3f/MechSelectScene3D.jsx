@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import mechsData from '../data/mechs.json';
 import abilitiesData from '../data/abilities.json';
 import campaignsData from '../data/campaigns.json';
+import MechModel from './MechModel.jsx';
 
 const abilityMap = {};
 abilitiesData.forEach(a => { abilityMap[a.id] = a; });
@@ -31,7 +33,7 @@ const S = {
     opacity: unlocked ? 1 : 0.4,
     transition: 'all 0.1s',
   }),
-  detail: { flex: 1, padding: '28px 36px', overflowY: 'auto' },
+  detail: { flex: 1, padding: '24px 36px', overflowY: 'auto' },
   mechName: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
   classBadge: (cls) => ({
     display: 'inline-block', padding: '2px 10px', fontSize: 11,
@@ -67,6 +69,49 @@ const STAT_CFG = [
   { key: 'frontArmor', label: 'F.ARMOR', max: 60,  color: '#8899aa' },
   { key: 'rearArmor',  label: 'R.ARMOR', max: 60,  color: '#667788' },
 ];
+
+// ── 3D mech preview scene (slow Y-axis rotation) ──────────────────────────
+
+function RotatingMech({ mechId }) {
+  const groupRef = useRef();
+  useFrame((_, delta) => {
+    if (groupRef.current) groupRef.current.rotation.y += delta * 0.8;
+  });
+  return (
+    <group ref={groupRef} position={[0, -0.5, 0]}>
+      <MechModel
+        mechId={mechId}
+        position={[0, 0, 0]}
+        alive={true}
+        stealthed={false}
+        onAnimReady={() => {}}
+      />
+    </group>
+  );
+}
+
+function MechPreviewCanvas({ mechId }) {
+  return (
+    <div style={{
+      width: 160, height: 220, margin: '0 auto 20px',
+      border: '1px solid #00eedd22',
+      background: 'radial-gradient(ellipse at center, #0a1a22 0%, #050510 100%)',
+    }}>
+      <Canvas
+        camera={{ position: [0, 1.2, 2.8], fov: 40 }}
+        gl={{ antialias: true }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[3, 5, 3]} intensity={1.8} />
+        <pointLight position={[-2, 2, 2]} intensity={0.6} color="#00eedd" />
+        <RotatingMech mechId={mechId} />
+      </Canvas>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function MechSelectScene3D({ missionIndex, onConfirm }) {
   const mission = campaignsData[missionIndex] ?? campaignsData[0];
@@ -121,6 +166,9 @@ export default function MechSelectScene3D({ missionIndex, onConfirm }) {
         {/* Detail panel */}
         {focused && (
           <div style={S.detail}>
+            {/* 3D mech preview */}
+            <MechPreviewCanvas mechId={focused.id} />
+
             <div style={S.mechName}>{focused.name}</div>
             <div style={S.classBadge(focused.class)}>{focused.class.toUpperCase()}</div>
             <div style={S.desc}>{focused.description}</div>
