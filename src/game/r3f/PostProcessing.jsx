@@ -1,25 +1,44 @@
 import React from 'react';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import {
+  EffectComposer,
+  Bloom,
+  Vignette,
+  ChromaticAberration,
+  SSAO,
+} from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
 
 /**
- * PostProcessing — Bloom + Vignette over the 3D scene.
+ * PostProcessing — cinematic post-processing stack.
  *
- * SSAO is omitted for now: @react-three/postprocessing v2 ships its own
- * SSAO but it requires careful depth-buffer config that can conflict with
- * transparent materials. Bloom and Vignette already achieve the desired
- * cinematic look.
+ * Effects (in order):
+ *   1. SSAO        — screen-space ambient occlusion for contact shadows
+ *   2. Bloom       — glow on emissive surfaces (mech neon eyes/vents, tiles)
+ *   3. ChromaticAberration — subtle colour fringing at edges
+ *   4. Vignette    — darkened border for cinematic framing
  *
- * Bloom triggers on materials with emissiveIntensity ≥ 0.6 (mech neon
- * eyes/vents, tile highlights) — the luminanceThreshold controls the cutoff.
+ * If SSAO causes issues at build/runtime it can be safely removed;
+ * the remaining effects still produce a strong look.
  */
 export default function PostProcessing() {
   return (
-    <EffectComposer multisampling={4}>
+    <EffectComposer multisampling={8}>
+      {/* SSAO — can be removed if it conflicts with transparent materials */}
+      <SSAO
+        samples={16}
+        radius={0.12}
+        intensity={1.5}
+        blendFunction={BlendFunction.MULTIPLY}
+      />
       <Bloom
-        intensity={1.2}
-        luminanceThreshold={0.6}
+        intensity={1.6}
+        luminanceThreshold={0.5}
         luminanceSmoothing={0.3}
         mipmapBlur
+      />
+      <ChromaticAberration
+        offset={[0.0008, 0.0008]}
+        blendFunction={BlendFunction.NORMAL}
       />
       <Vignette offset={0.35} darkness={0.6} />
     </EffectComposer>

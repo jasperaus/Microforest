@@ -238,12 +238,32 @@ export default class TurnManager {
 
     const delay = this.ctx.time?.delayedCall ?? ((ms, cb) => { setTimeout(cb, ms); return {}; });
     delay(500, () => {
-      this.ctx.aiController.runEnemyTurn(() => {
+      // Guard: if AI controller is missing, skip directly to next player turn
+      if (!this.ctx.aiController) {
+        console.warn('TurnManager: aiController not found — skipping enemy turn');
         this.turnNumber += 1;
-        if (!this.ctx.checkGameOver()) {
-          this.startPlayerTurn();
-        }
-      });
+        this.startPlayerTurn();
+        return;
+      }
+      try {
+        this.ctx.aiController.runEnemyTurn(() => {
+          try {
+            this.turnNumber += 1;
+            if (!this.ctx.checkGameOver()) {
+              this.startPlayerTurn();
+            }
+          } catch (err) {
+            console.error('TurnManager: error resuming player turn after enemy turn:', err);
+            // Attempt recovery so the game doesn't freeze
+            this.setPhase(PHASE.IDLE);
+            this.startPlayerTurn();
+          }
+        });
+      } catch (err) {
+        console.error('TurnManager: error during enemy turn — forcing player turn:', err);
+        this.turnNumber += 1;
+        this.startPlayerTurn();
+      }
     });
   }
 }

@@ -46,6 +46,8 @@ export function createGameContext(missionIndex, mission, weaponsData) {
     _shakeCamera: null,
     /** (sceneName: string, data?: object) => void */
     _setActiveScene: null,
+    /** (type: string, position: [x,y,z], options?: object) => void — set by CombatEffects */
+    spawnEffect: null,
 
     // ── Coordinate helpers ────────────────────────────────────────────────────
 
@@ -194,11 +196,17 @@ export function createGameContext(missionIndex, mission, weaponsData) {
           await safeAnim(anim.playHitEffect(result.damage, { isCrit: result.isCrit, armorBroken }));
         }
 
+        // VFX — impact ring on hit
+        const [tx, tz] = this.tileXZ(target.col, target.row);
+        const hitColor = target.team === 'player' ? '#4488ff' : '#ff4444';
+        this.spawnEffect?.('impact', [tx, 0.5, tz], { color: hitColor });
+        this.spawnEffect?.('muzzle', [tx, 0.5, tz], { color: result.isCrit ? '#ffaa00' : '#ffdd88' });
+
         if (died) {
           target.alive = false;
           const animDead = this.getMechAnim(target.id);
           if (animDead) await safeAnim(animDead.playDeathEffect());
-          this.shakeCamera(200, 0.012);
+          this.shakeCamera(350, 0.02);
           this.grid[target.row][target.col].mech = null;
 
           if (target.team === 'enemy') this.stats.enemiesKilled++;
@@ -206,7 +214,7 @@ export function createGameContext(missionIndex, mission, weaponsData) {
 
           EventBridge.emit('mechKilled', { mechId: target.id, team: target.team });
         } else {
-          if (result.damage >= 15) this.shakeCamera(100, 0.006);
+          if (result.damage >= 15) this.shakeCamera(120, 0.008);
           if (overheatedNow) {
             const animAtk = this.getMechAnim(attacker.id);
             if (animAtk) await safeAnim(animAtk.playOverheatEffect());
@@ -241,8 +249,11 @@ export function createGameContext(missionIndex, mission, weaponsData) {
     },
 
     _endGame(won) {
-      // Phase is set by TurnManager — just emit and navigate
-      this.stats.turns = this.aiController?.turnNumber ?? this.turnManager?.getTurn?.() ?? 0;
+      this.stats.turns = this.turnManager?.getTurn?.() ?? 0;
+      // Lock the turn manager into GAME_OVER so no further actions can fire
+      if (this.turnManager) {
+        this.turnManager.setPhase('GAME_OVER');
+      }
       EventBridge.emit('gameOver', { won, stats: this.stats });
 
       setTimeout(() => {

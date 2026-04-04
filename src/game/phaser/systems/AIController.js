@@ -26,16 +26,25 @@ export default class AIController {
     });
 
     let finished = false;
-    const finish = () => { if (!finished) { finished = true; onComplete(); } };
+    const finish = () => {
+      if (!finished) {
+        finished = true;
+        try {
+          onComplete();
+        } catch (err) {
+          console.error('AIController: error in onComplete callback:', err);
+        }
+      }
+    };
 
-    // Failsafe: if entire enemy turn exceeds 12 s, force-complete it
-    const watchdog = this.ctx.time.delayedCall(12000, () => {
+    // Failsafe: if entire enemy turn exceeds 6 s, force-complete it
+    const watchdog = this.ctx.time.delayedCall(6000, () => {
       console.warn('AIController: enemy turn watchdog fired — forcing turn end');
       finish();
     });
 
     this._runNextEnemy([...enemies], () => {
-      watchdog.remove(false);
+      watchdog.remove();
       finish();
     });
   }
@@ -64,7 +73,7 @@ export default class AIController {
         const d  = hexDistance(enemy.row, enemy.col, p.row, p.col);
         const bd = hexDistance(enemy.row, enemy.col, best.row, best.col);
         return d < bd ? p : best;
-      });
+      }, players[0]);
 
       const weaponData = this.ctx.getWeapon(enemy, 0);
       if (!weaponData) return;

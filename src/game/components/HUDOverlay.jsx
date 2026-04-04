@@ -35,6 +35,11 @@ export default function HUDOverlay({
   const [gameOver, setGameOver] = useState(null);
   const logRef = useRef(null);
 
+  // Turn banner state
+  const [banner, setBanner] = useState(null);     // { team, turn }
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const bannerTimerRef = useRef(null);
+
   const addLog = useCallback((msg) => {
     setLog(prev => [...prev.slice(-(LOG_MAX - 1)), msg]);
   }, []);
@@ -55,6 +60,13 @@ export default function HUDOverlay({
           setTurn(data.turn);
           if (data.mechs) setPlayerMechs(data.mechs);
           if (data.enemyMechs) setEnemyMechs(data.enemyMechs);
+          // Show turn banner
+          setBanner({ team: data.team, turn: data.turn });
+          setBannerVisible(true);
+          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+          bannerTimerRef.current = setTimeout(() => {
+            setBannerVisible(false);
+          }, 1500);
           break;
         case 'mechSelected':
           setSelectedMech(data);
@@ -96,7 +108,8 @@ export default function HUDOverlay({
     EventBridge.setListener(handleEvent);
     return () => {
       mounted = false;
-      EventBridge.clearListener();
+      EventBridge.removeListener(handleEvent);
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
     };
   }, [addLog]);
 
@@ -115,6 +128,41 @@ export default function HUDOverlay({
 
   const isEnemyTurn = team === 'enemy' || phase === 'ENEMY_TURN';
 
+  // AP pip rendering helper
+  const renderApPips = (mech) => {
+    if (!mech || !mech.alive) return null;
+    const maxAp = mech.maxAp ?? mech.baseAp ?? 3;
+    const currentAp = mech.ap ?? 0;
+    const pips = [];
+    for (let i = 0; i < maxAp; i++) {
+      pips.push(
+        <span key={i} style={{
+          display: 'inline-block',
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          margin: '0 2px',
+          background: i < currentAp ? '#44aaff' : 'transparent',
+          border: i < currentAp ? '1px solid #66ccff' : '1px solid #334466',
+          boxShadow: i < currentAp ? '0 0 4px #44aaff88' : 'none',
+          transition: 'all 0.25s ease',
+        }} />
+      );
+    }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 4, paddingLeft: 4 }}>
+        <span style={{ fontSize: 9, color: '#556677', marginRight: 4, letterSpacing: 1 }}>AP</span>
+        {pips}
+      </div>
+    );
+  };
+
+  // Banner colors
+  const bannerIsEnemy = banner?.team === 'enemy';
+  const bannerColor = bannerIsEnemy ? '#ff4444' : '#44aaff';
+  const bannerBg = bannerIsEnemy ? 'rgba(60, 0, 0, 0.92)' : 'rgba(0, 20, 60, 0.92)';
+  const bannerBorder = bannerIsEnemy ? '#880000' : '#004488';
+
   return (
     <div style={{
       position: 'absolute', inset: 0,
@@ -122,6 +170,38 @@ export default function HUDOverlay({
       display: 'flex', flexDirection: 'column',
       fontFamily: 'monospace',
     }}>
+      {/* Turn transition banner */}
+      {banner && (
+        <div style={{
+          position: 'absolute',
+          top: 50,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 100,
+          pointerEvents: 'none',
+          transition: 'opacity 0.4s ease, transform 0.4s ease',
+          opacity: bannerVisible ? 1 : 0,
+          transform: bannerVisible ? 'translateY(0)' : 'translateY(-30px)',
+        }}>
+          <div style={{
+            background: bannerBg,
+            border: `2px solid ${bannerBorder}`,
+            borderRadius: 6,
+            padding: '10px 40px',
+            color: bannerColor,
+            fontSize: 20,
+            fontWeight: 'bold',
+            letterSpacing: 4,
+            textShadow: `0 0 12px ${bannerColor}88`,
+            textTransform: 'uppercase',
+          }}>
+            {bannerIsEnemy ? 'ENEMY TURN' : 'PLAYER TURN'}
+          </div>
+        </div>
+      )}
+
       {/* Top bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -150,9 +230,10 @@ export default function HUDOverlay({
 
       {/* Middle row */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', pointerEvents: 'none' }}>
-        {/* Left: selected mech card + roster */}
+        {/* Left: selected mech card + AP pips + roster */}
         <div style={{ width: 220, flexShrink: 0, padding: 8, pointerEvents: 'auto' }}>
           <MechCard mech={selectedMech} />
+          {selectedMech && renderApPips(selectedMech)}
 
           <div style={{ marginTop: 6 }}>
             {playerMechs.map(m => (
@@ -221,6 +302,7 @@ export default function HUDOverlay({
       <div style={{ flexShrink: 0, pointerEvents: 'auto' }}>
         <ActionBar
           selectedMech={selectedMech}
+          playerMechs={playerMechs}
           phase={phase}
           onMove={handleMove}
           onAttack={handleAttack}

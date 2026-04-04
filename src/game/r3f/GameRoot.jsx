@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import Lighting from './Lighting.jsx';
 import PostProcessing from './PostProcessing.jsx';
 import CameraRig from './CameraRig.jsx';
+import CombatEffects from './effects/CombatEffects.jsx';
 import BattleScene3D from './BattleScene3D.jsx';
 import MenuScene3D from './MenuScene3D.jsx';
 import StoryScene3D from './StoryScene3D.jsx';
@@ -13,6 +14,7 @@ import VictoryScene3D from './VictoryScene3D.jsx';
 import HUDOverlay from '../components/HUDOverlay.jsx';
 import { createGameContext } from '../GameContext.js';
 import weaponsData from '../data/weapons.json';
+import campaignsData from '../data/campaigns.json';
 
 const SCENES = {
   MENU:        'menu',
@@ -59,8 +61,9 @@ export default function GameRoot() {
   }, []);
 
   const handleStoryContinue = useCallback(() => {
-    // Fresh context for each battle; reset ready flag
-    ctxRef.current = createGameContext(missionIndex, null, weaponsData);
+    // Fresh context for each battle; resolve mission up front so ctx is never null-mission
+    const mission = campaignsData[missionIndex] ?? campaignsData[0];
+    ctxRef.current = createGameContext(missionIndex, mission, weaponsData);
     setBattleReady(false);
     setScene(SCENES.BATTLE);
   }, [missionIndex]);
@@ -124,14 +127,21 @@ export default function GameRoot() {
             }}
           />
           {scene === SCENES.BATTLE && ctxRef.current && (
-            <BattleScene3D
-              key={`battle-${missionIndex}`}
-              missionIndex={missionIndex}
-              selectedMechs={selectedMechs}
-              ctx={ctxRef.current}
-              onSceneEnd={handleSceneEnd}
-              onReady={handleBattleReady}
-            />
+            <>
+              <BattleScene3D
+                key={`battle-${missionIndex}`}
+                missionIndex={missionIndex}
+                selectedMechs={selectedMechs}
+                ctx={ctxRef.current}
+                onSceneEnd={handleSceneEnd}
+                onReady={handleBattleReady}
+              />
+              <CombatEffects
+                onEffectReady={(spawn) => {
+                  if (ctxRef.current) ctxRef.current.spawnEffect = spawn;
+                }}
+              />
+            </>
           )}
           <PostProcessing />
         </Canvas>

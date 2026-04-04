@@ -7,6 +7,7 @@ import TurnManager from '../phaser/systems/TurnManager.js';
 import AIController from '../phaser/systems/AIController.js';
 import HexGrid from './HexGrid.jsx';
 import MechModel from './MechModel.jsx';
+import CombatEffects from './effects/CombatEffects.jsx';
 
 // ── Mech state class (pure JS, no Phaser) ─────────────────────────────────
 
@@ -97,10 +98,11 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
     if (initialized.current) return;
     initialized.current = true;
 
-    const mission = campaignsData[missionIndex] ?? campaignsData[0];
-
-    // Inject callbacks into context
+    // Mission is already set on ctx by GameRoot; fall back to campaignsData lookup if missing
+    const mission = ctx.mission ?? campaignsData[missionIndex] ?? campaignsData[0];
     ctx.mission = mission;
+
+    // Inject React callbacks into context
     ctx.missionIndex = missionIndex;
     ctx._setHighlights = (map) => setHighlights(new Map(map));
     ctx._setActiveScene = (name, data) => onSceneEnd(name, data);
@@ -236,6 +238,12 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
     ctx.registerMechAnim(mechId, api);
   }, [ctx]);
 
+  // ── VFX effect spawn callback ─────────────────────────────────────────────
+
+  const handleEffectReady = useCallback((spawnFn) => {
+    ctx.spawnEffect = spawnFn;
+  }, [ctx]);
+
   // ── Collect all mechs for rendering ──────────────────────────────────────
 
   const allMechs = [...ctx.playerMechs, ...ctx.enemyMechs];
@@ -266,6 +274,8 @@ export default function BattleScene3D({ missionIndex, selectedMechs, ctx, onScen
           />
         );
       })}
+
+      <CombatEffects onEffectReady={handleEffectReady} />
     </group>
   );
 }

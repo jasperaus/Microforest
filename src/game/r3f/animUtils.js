@@ -5,7 +5,7 @@
  */
 
 /** Race animation promise against a timeout. */
-export const safeAnim = (p, ms = 1800) =>
+export const safeAnim = (p, ms = 800) =>
   Promise.race([p, new Promise(r => setTimeout(r, ms))]);
 
 /**

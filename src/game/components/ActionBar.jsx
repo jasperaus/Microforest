@@ -1,10 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-function ActionButton({ label, icon, disabled, onClick, color = '#224466', textColor = '#aaccff', title }) {
+const pulseKeyframes = `
+@keyframes endTurnPulse {
+  0%   { box-shadow: 0 0 0px #44cc4400; }
+  50%  { box-shadow: 0 0 12px #44cc4488; }
+  100% { box-shadow: 0 0 0px #44cc4400; }
+}
+`;
+
+function ActionButton({ label, icon, disabled, onClick, color = '#224466', textColor = '#aaccff', title, pulse }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <button
       onClick={disabled ? undefined : onClick}
       title={title}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         background: disabled ? '#111122' : color,
         border: `1px solid ${disabled ? '#222233' : textColor}55`,
@@ -24,6 +36,8 @@ function ActionButton({ label, icon, disabled, onClick, color = '#224466', textC
         opacity: disabled ? 0.5 : 1,
         userSelect: 'none',
         WebkitUserSelect: 'none',
+        filter: (!disabled && hovered) ? 'brightness(1.25)' : 'brightness(1)',
+        animation: pulse ? 'endTurnPulse 1.2s ease-in-out infinite' : 'none',
       }}
     >
       <span style={{ fontSize: 16 }}>{icon}</span>
@@ -32,7 +46,7 @@ function ActionButton({ label, icon, disabled, onClick, color = '#224466', textC
   );
 }
 
-export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpecial, onEndTurn, onDeselect }) {
+export default function ActionBar({ selectedMech, playerMechs, phase, onMove, onAttack, onSpecial, onEndTurn, onDeselect }) {
   const isPlayerTurn = phase !== 'ENEMY_TURN' && phase !== 'GAME_OVER';
   const isAnimating = phase === 'MOVING' || phase === 'RESOLVING';
   const hasMech = !!selectedMech && selectedMech.alive;
@@ -41,6 +55,12 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
   const canAttack = canAct && selectedMech.ap >= 1 && !selectedMech.overheated;
   const canSpecial = canAct && selectedMech.ap >= 2 && selectedMech.special && selectedMech.special !== 'none';
   const canEndTurn = isPlayerTurn && !isAnimating;
+
+  // Check if all alive player mechs are exhausted (0 AP)
+  const allExhausted = isPlayerTurn && !isAnimating
+    && Array.isArray(playerMechs) && playerMechs.length > 0
+    && playerMechs.filter(m => m.alive).length > 0
+    && playerMechs.filter(m => m.alive).every(m => (m.ap ?? 0) <= 0);
 
   const phaseLabels = {
     IDLE: 'Click a mech on the battlefield to select it',
@@ -62,6 +82,9 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
       background: '#0a0a1a',
       borderTop: '2px solid #1a1a3a',
     }}>
+      {/* Inject pulse animation keyframes */}
+      <style>{pulseKeyframes}</style>
+
       {/* Phase label */}
       <div style={{
         fontFamily: 'monospace', fontSize: 12, color: '#556688',
@@ -111,6 +134,7 @@ export default function ActionBar({ selectedMech, phase, onMove, onAttack, onSpe
           color="#112211"
           textColor="#44cc44"
           title="End player turn"
+          pulse={allExhausted}
         />
         {hasMech && (
           <ActionButton
