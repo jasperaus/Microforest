@@ -1,5 +1,8 @@
 # Microforest Lab
 
+> **Version 2.0** — Updated April 4, 2026  
+> R3F 3D battle engine, bug fixes, graphics uplift, deps upgraded
+
 A collection of interactive simulations and games built with **React 18**, **React Three Fiber**, and **Vite 6**.
 
 Live site: https://jasperaus.github.io/Microforest/
@@ -48,6 +51,16 @@ Hot-reload is active — edits to any `src/` file refresh the browser instantly.
 
 > **No API keys or environment variables required.**
 > All textures and geometry are generated procedurally.
+
+### Run in the browser (no install)
+
+Open in **StackBlitz** — runs entirely in your browser, no local install needed:
+
+```
+https://stackblitz.com/github/jasperaus/Microforest/tree/claude/iron-cadets-review-O3nMf
+```
+
+Allow 3–5 minutes on first load for dependency install and compilation. This branch contains the latest R3F 3D engine, bug fixes, and graphics upgrades.
 
 ---
 
