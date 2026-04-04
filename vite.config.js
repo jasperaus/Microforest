@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
 
-  // Must match the `homepage` field in package.json for GitHub Pages.
-  base: '/Microforest/',
+  // Set base path only for production builds (GitHub Pages).
+  // Dev server (StackBlitz, local) stays at root ('/') so assets resolve correctly.
+  base: command === 'build' ? '/Microforest/' : '/',
 
   build: {
     outDir: 'dist',
@@ -19,4 +20,4 @@ export default defineConfig({
     host: true,
     strictPort: false,
   },
-});
+}));

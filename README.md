@@ -43,7 +43,7 @@ cd Microforest
 npm install
 
 # 3. Start the dev server
-npm run dev
+npm start
 ```
 
 The app opens at **http://localhost:5173** (Vite default port).
@@ -126,8 +126,8 @@ src/
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Dev server at localhost:5173 with hot reload |
-| `npm run build` | Production build into `dist/` |
+| `npm start` or `npm run dev` | Dev server at localhost:5173 with hot reload |
+| `npm run build` | Production build into `dist/` (uses `/Microforest/` base for GitHub Pages) |
 | `npm run preview` | Preview the production build locally |
 
 ---
